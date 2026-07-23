@@ -3,29 +3,60 @@ export interface CloudflareAccount {
   name: string;
 }
 
+/**
+ * CORS Proxy Worker URL — routes all Cloudflare API calls through this Worker
+ * to bypass browser CORS restrictions.
+ */
+const PROXY_BASE = 'https://monitorflare-cors-proxy.glynet-org-bc5.workers.dev/proxy';
+
+/**
+ * Build a proxied URL for a given Cloudflare API path.
+ * e.g. cfUrl('/client/v4/accounts') → https://proxy.../proxy/client/v4/accounts
+ */
+function cfUrl(path: string): string {
+  // path should start with /client/v4/...
+  return `${PROXY_BASE}${path}`;
+}
+
+/**
+ * Wrapper fetch that always includes the Authorization header
+ * and routes through the CORS proxy.
+ */
+async function cfFetch(
+  token: string,
+  path: string,
+  options: RequestInit = {}
+): Promise<Response> {
+  const headers = new Headers(options.headers);
+  headers.set('Authorization', `Bearer ${token.trim()}`);
+  if (options.body) {
+    headers.set('Content-Type', 'application/json');
+  }
+
+  return fetch(cfUrl(path), {
+    ...options,
+    headers,
+  });
+}
+
 export class CloudflareService {
   /**
    * Verifies if the provided Cloudflare API Token is valid.
-   * Checks both /user/tokens/verify and /accounts API endpoints.
    */
   static async verifyToken(apiToken: string): Promise<boolean> {
     const cleanToken = apiToken.trim();
     if (!cleanToken) return false;
 
-    // 1. Check /user/tokens/verify
+    // Primary: /user/tokens/verify
     try {
-      const res = await fetch('https://api.cloudflare.com/client/v4/user/tokens/verify', {
-        headers: {
-          Authorization: `Bearer ${cleanToken}`,
-        },
-      });
+      const res = await cfFetch(cleanToken, '/client/v4/user/tokens/verify');
       if (res.ok) {
         const data = (await res.json()) as { success: boolean };
         if (data.success) return true;
       }
     } catch {}
 
-    // 2. Fallback check via /accounts
+    // Fallback: check accounts list
     try {
       const accs = await this.getAccounts(cleanToken);
       return accs.length > 0;
@@ -39,47 +70,60 @@ export class CloudflareService {
    */
   static async getAccounts(apiToken: string): Promise<CloudflareAccount[]> {
     const cleanToken = apiToken.trim();
-    const res = await fetch('https://api.cloudflare.com/client/v4/accounts', {
-      headers: {
-        Authorization: `Bearer ${cleanToken}`,
-      },
-    });
-    const data = (await res.json()) as { success: boolean; result?: CloudflareAccount[]; errors?: Array<{ message: string }> };
+    const res = await cfFetch(cleanToken, '/client/v4/accounts');
+    const data = (await res.json()) as {
+      success: boolean;
+      result?: CloudflareAccount[];
+      errors?: Array<{ message: string }>;
+    };
     if (res.ok && data.success && data.result) {
-      return data.result.map(acc => ({ id: acc.id, name: acc.name }));
+      return data.result.map((acc) => ({ id: acc.id, name: acc.name }));
     }
-    throw new Error(data.errors?.[0]?.message || 'Failed to retrieve Cloudflare Accounts. Ensure API token has Account Read permissions.');
+    throw new Error(
+      data.errors?.[0]?.message ||
+        'Failed to retrieve Cloudflare Accounts. Ensure API token has Account Read permissions.'
+    );
   }
 
   /**
    * Provisions a new D1 Serverless Database.
    */
-  static async createD1Database(apiToken: string, accountId: string, name: string = 'monitorflare'): Promise<string> {
+  static async createD1Database(
+    apiToken: string,
+    accountId: string,
+    name: string = 'monitorflare'
+  ): Promise<string> {
     const cleanToken = apiToken.trim();
-    const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${cleanToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ name }),
-    });
+    const res = await cfFetch(
+      cleanToken,
+      `/client/v4/accounts/${accountId}/d1/database`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ name }),
+      }
+    );
 
-    const data = (await res.json()) as { success: boolean; result?: { uuid: string }; errors?: Array<{ message: string }> };
-    
+    const data = (await res.json()) as {
+      success: boolean;
+      result?: { uuid: string };
+      errors?: Array<{ message: string }>;
+    };
+
     if (res.ok && data.success && data.result?.uuid) {
       return data.result.uuid;
     }
 
     // If database already exists, list databases to find uuid
-    if (data.errors && data.errors.some(e => e.message.includes('already exists'))) {
-      const listRes = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database`, {
-        headers: {
-          Authorization: `Bearer ${cleanToken}`,
-        },
-      });
-      const listData = (await listRes.json()) as { success: boolean; result?: Array<{ uuid: string; name: string }> };
-      const existing = listData.result?.find(d => d.name === name);
+    if (data.errors && data.errors.some((e) => e.message.includes('already exists'))) {
+      const listRes = await cfFetch(
+        cleanToken,
+        `/client/v4/accounts/${accountId}/d1/database`
+      );
+      const listData = (await listRes.json()) as {
+        success: boolean;
+        result?: Array<{ uuid: string; name: string }>;
+      };
+      const existing = listData.result?.find((d) => d.name === name);
       if (existing) return existing.uuid;
     }
 
@@ -89,21 +133,27 @@ export class CloudflareService {
   /**
    * Executes SQL Statements on Cloudflare D1 via REST API.
    */
-  static async executeD1Query(apiToken: string, accountId: string, databaseId: string, sql: string, params: any[] = []): Promise<any> {
+  static async executeD1Query(
+    apiToken: string,
+    accountId: string,
+    databaseId: string,
+    sql: string,
+    params: unknown[] = []
+  ): Promise<unknown> {
     const cleanToken = apiToken.trim();
-    const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${databaseId}/query`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${cleanToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        sql,
-        params,
-      }),
-    });
+    const res = await cfFetch(
+      cleanToken,
+      `/client/v4/accounts/${accountId}/d1/database/${databaseId}/query`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ sql, params }),
+      }
+    );
 
-    const data = (await res.json()) as { success: boolean; errors?: Array<{ message: string }> };
+    const data = (await res.json()) as {
+      success: boolean;
+      errors?: Array<{ message: string }>;
+    };
     if (!res.ok || !data.success) {
       throw new Error(data.errors?.[0]?.message || 'D1 SQL Query execution failed');
     }
@@ -113,7 +163,11 @@ export class CloudflareService {
   /**
    * Executes all D1 Table Migrations (0000 - 0004) directly from browser.
    */
-  static async applyAllMigrations(apiToken: string, accountId: string, databaseId: string): Promise<void> {
+  static async applyAllMigrations(
+    apiToken: string,
+    accountId: string,
+    databaseId: string
+  ): Promise<void> {
     const migrations = [
       // 1. Services Table
       `CREATE TABLE IF NOT EXISTS services (
@@ -188,7 +242,12 @@ export class CloudflareService {
   /**
    * Seeds initial settings into D1.
    */
-  static async seedSettings(apiToken: string, accountId: string, databaseId: string, settings: Record<string, string>): Promise<void> {
+  static async seedSettings(
+    apiToken: string,
+    accountId: string,
+    databaseId: string,
+    settings: Record<string, string>
+  ): Promise<void> {
     for (const [key, value] of Object.entries(settings)) {
       await this.executeD1Query(
         apiToken,
