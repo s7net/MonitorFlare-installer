@@ -12655,6 +12655,10 @@ ${(/* @__PURE__ */ new Date()).toLocaleString()}`
 });
 
 // src/modules/notifications/providers/discord.ts
+var discord_exports = {};
+__export(discord_exports, {
+  DiscordProvider: () => DiscordProvider
+});
 var DiscordProvider;
 var init_discord = __esm({
   "src/modules/notifications/providers/discord.ts"() {
@@ -12694,6 +12698,10 @@ var init_discord = __esm({
 });
 
 // src/modules/notifications/providers/webhook.ts
+var webhook_exports = {};
+__export(webhook_exports, {
+  CustomWebhookProvider: () => CustomWebhookProvider
+});
 var CustomWebhookProvider;
 var init_webhook = __esm({
   "src/modules/notifications/providers/webhook.ts"() {
@@ -32426,12 +32434,29 @@ var monitoringRoutes = new Elysia({ prefix: "/api" }).derive(async ({ store }) =
       500
     );
   }
-}).put("/services/:id", async ({ headers, params, body, monitoringService, authService }) => {
+}).put("/services/:id", async ({ headers, params, body, monitoringService, healthRepository, authService, store }) => {
   const isAdmin = await authService.verifyCookie(headers.cookie);
   if (!isAdmin)
     return ResponseHelper.error("Unauthorized", 401);
   try {
-    await monitoringService.updateService(params.id, body);
+    const updateData = { ...body, consecutiveFails: 0 };
+    await monitoringService.updateService(params.id, updateData);
+    try {
+      const updatedService = await monitoringService.getServiceById(params.id);
+      if (updatedService) {
+        const env4 = store;
+        const db = createDatabase(env4.DB);
+        const monitoringRepo = new (await Promise.resolve().then(() => (init_repository(), repository_exports))).MonitoringRepository(db);
+        const notificationRepo = new (await Promise.resolve().then(() => (init_repository3(), repository_exports3))).NotificationRepository(db);
+        const settingsRepo = new (await Promise.resolve().then(() => (init_repository2(), repository_exports2))).SettingsRepository(db);
+        const settings2 = await settingsRepo.getAllSettings();
+        const notificationService = new (await Promise.resolve().then(() => (init_service(), service_exports))).NotificationService(notificationRepo, env4, settings2);
+        const healthChecker = new (await Promise.resolve().then(() => (init_checker(), checker_exports))).HealthChecker(healthRepository, monitoringRepo, notificationService, settings2);
+        await healthChecker.checkService(updatedService, settings2.baseUrl || "");
+      }
+    } catch (checkErr) {
+      console.error("[Monitoring] Immediate check on update error:", checkErr);
+    }
     return { success: true };
   } catch (error3) {
     console.error("[Monitoring] Update error:", error3);
@@ -32560,13 +32585,19 @@ var notificationRoutes = new Elysia({ prefix: "/api" }).derive(({ store }) => {
       await TelegramProvider.sendMessage(
         botToken,
         chatId,
-        "\u{1F514} *TEST NOTIFICATION*\n\nYour MonitorFlare Telegram integration is working perfectly!",
+        "\u{1F9EA} *MONITORFLARE TEST NOTIFICATION*\n\nYour MonitorFlare Telegram notification integration is working perfectly!",
         baseUrl,
         testService.id,
         testService.url
       );
     } else if (notification.type === "slack") {
       await SlackProvider.send(notification.config, testService, testIncident, baseUrl);
+    } else if (notification.type === "discord") {
+      const { DiscordProvider: DiscordProvider2 } = await Promise.resolve().then(() => (init_discord(), discord_exports));
+      await DiscordProvider2.send(notification.config?.webhookUrl, "down", testService, { responseTime: 120, statusCode: 500, error: "Test Notification" });
+    } else if (notification.type === "webhook") {
+      const { CustomWebhookProvider: CustomWebhookProvider2 } = await Promise.resolve().then(() => (init_webhook(), webhook_exports));
+      await CustomWebhookProvider2.send(notification.config?.webhookUrl, notification.config?.secretHeader, "down", testService, { responseTime: 120, statusCode: 500, error: "Test Notification" });
     }
     return { success: true };
   } catch (error3) {
@@ -34712,6 +34743,7 @@ function AdminDashboard({ adminPath = "/manage-x7k9", corsProxyUrl = "https://mo
                       </div>
                     </div>
                     <div class="flex gap-2 items-center">
+                      <button onclick="testNotif('\${n.id}')" class="shad-btn bg-brand/10 border border-brand/30 text-brand font-semibold hover:bg-brand/20">\u{1F9EA} Test Notification</button>
                       <button onclick='editNotif(\${JSON.stringify(n).replace(/'/g, "\\\\'")})' class="shad-btn">Edit</button>
                       <button onclick="deleteNotif('\${n.id}')" class="shad-btn shad-btn-danger">Delete</button>
                     </div>
@@ -34719,6 +34751,20 @@ function AdminDashboard({ adminPath = "/manage-x7k9", corsProxyUrl = "https://mo
                 </div>
               \`).join('');
             } catch (e) { console.error(e); }
+          }
+
+          async function testNotif(id) {
+            try {
+              const res = await fetch(BASE + '/api/notifications/' + id + '/test', { method: 'POST' });
+              const data = await res.json();
+              if (res.ok && data.success) {
+                alert('\u2713 Test notification sent successfully to notification channel!');
+              } else {
+                alert('\u2717 Test notification failed: ' + (data.error || 'Check notification configuration settings'));
+              }
+            } catch (err) {
+              alert('Error sending test notification: ' + err.message);
+            }
           }
 
           function openNotifModal() {
