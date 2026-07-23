@@ -26,6 +26,7 @@ export default function App() {
   // Site Brand Settings
   const [brandName, setBrandName] = useState<string>('MonitorFlare Status');
   const [brandLogoUrl, setBrandLogoUrl] = useState<string>('');
+  const [baseUrl, setBaseUrl] = useState<string>('');
 
   // Auto-Deployment Execution Progress
   const [isDeploying, setIsDeploying] = useState<boolean>(false);
@@ -138,6 +139,8 @@ export default function App() {
       const settingsMap: Record<string, string> = {
         admin_username: adminUsername,
         admin_password_hash: pwdHash,
+        admin_panel_path: adminPath,
+        base_url: baseUrl,
         brand_name: brandName,
         brand_logo_url: brandLogoUrl,
       };
@@ -392,6 +395,18 @@ export default function App() {
                   required
                 />
                 <p className="text-[11px] text-zinc-500 mt-1">Standard <code>/admin</code> path is hidden for maximum security.</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Worker Base URL <span className="text-zinc-500 font-normal">(Optional — e.g. https://monitorflare.xxx.workers.dev)</span></label>
+                <input
+                  type="text"
+                  value={baseUrl}
+                  onChange={e => setBaseUrl(e.target.value)}
+                  placeholder="https://monitorflare.xxx.workers.dev"
+                  className="w-full bg-[#121215] border border-[#333339] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand font-mono"
+                />
+                <p className="text-[11px] text-zinc-500 mt-1">Used for status page links in alert messages. Can be set later in Admin Settings.</p>
               </div>
             </div>
 
