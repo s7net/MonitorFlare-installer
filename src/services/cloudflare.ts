@@ -89,6 +89,27 @@ export class CloudflareService {
   }
 
   /**
+   * Fetches the user's Workers subdomain for the specified Cloudflare account.
+   * e.g. "ahsvip" for "ahsvip.workers.dev"
+   */
+  static async getWorkersSubdomain(apiToken: string, accountId: string): Promise<string> {
+    const cleanToken = apiToken.trim();
+    try {
+      const res = await cfFetch(cleanToken, `/client/v4/accounts/${accountId}/workers/subdomain`);
+      if (res.ok) {
+        const data = (await res.json()) as {
+          success: boolean;
+          result?: { subdomain?: string };
+        };
+        if (data.success && data.result?.subdomain) {
+          return data.result.subdomain;
+        }
+      }
+    } catch {}
+    return '';
+  }
+
+  /**
    * Provisions a new D1 Serverless Database.
    */
   static async createD1Database(

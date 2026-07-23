@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CloudflareService, CloudflareAccount } from './services/cloudflare';
 import { generateRandomCredentials, generateWorkerName, hashPassword } from './utils/credentials';
-import { Shield, Cloud, Bot, Sparkles, CheckCircle2, AlertCircle, Copy, Check, ArrowRight, RefreshCw, ExternalLink, KeyRound, Database, Cpu, UserCheck, PlusCircle } from 'lucide-react';
+import { Shield, Cloud, Bot, Sparkles, CheckCircle2, AlertCircle, Copy, Check, ArrowRight, RefreshCw, ExternalLink, KeyRound, Database, FileCode } from 'lucide-react';
 
 export default function App() {
   const [step, setStep] = useState<number>(1);
@@ -11,11 +11,16 @@ export default function App() {
   const [isVerifyingToken, setIsVerifyingToken] = useState<boolean>(false);
   const [tokenVerified, setTokenVerified] = useState<boolean>(false);
 
+  // Workers Subdomain & Deployment Names
+  const [workerName, setWorkerName] = useState<string>(() => generateWorkerName());
+  const [workersSubdomain, setWorkersSubdomain] = useState<string>('');
+  const [isFetchingSubdomain, setIsFetchingSubdomain] = useState<boolean>(false);
+  const [d1DatabaseName, setD1DatabaseName] = useState<string>('monitorflare');
+
   // Admin Credentials
   const [adminUsername, setAdminUsername] = useState<string>('admin');
   const [adminPassword, setAdminPassword] = useState<string>('');
   const [adminPath, setAdminPath] = useState<string>('/manage-x7k9');
-  const [workerName, setWorkerName] = useState<string>(() => generateWorkerName());
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   // Telegram Integration
@@ -35,8 +40,34 @@ export default function App() {
     databaseId?: string;
     adminUrl?: string;
     secretPath?: string;
+    workerBaseUrl?: string;
+    wranglerToml?: string;
   } | null>(null);
   const [errorMsg, setErrorMsg] = useState<string>('');
+
+  // Fetch Workers Subdomain from Cloudflare API when Account changes
+  const fetchSubdomainForAccount = async (accId: string, token: string) => {
+    if (!accId || !token) return;
+    setIsFetchingSubdomain(true);
+    try {
+      const sub = await CloudflareService.getWorkersSubdomain(token.trim(), accId);
+      if (sub) {
+        setWorkersSubdomain(sub);
+      }
+    } catch {
+      // Keep existing subdomain or fallback
+    } finally {
+      setIsFetchingSubdomain(false);
+    }
+  };
+
+  // Handle Account Dropdown Selection Change
+  const handleAccountChange = (accId: string) => {
+    setSelectedAccountId(accId);
+    if (apiToken) {
+      fetchSubdomainForAccount(accId, apiToken);
+    }
+  };
 
   // Handle Cloudflare Token Verification
   const handleVerifyToken = async () => {
@@ -50,7 +81,9 @@ export default function App() {
         const accList = await CloudflareService.getAccounts(apiToken.trim());
         setAccounts(accList);
         if (accList.length > 0) {
-          setSelectedAccountId(accList[0].id);
+          const firstAccId = accList[0].id;
+          setSelectedAccountId(firstAccId);
+          await fetchSubdomainForAccount(firstAccId, apiToken.trim());
         }
       } else {
         setTokenVerified(false);
@@ -73,11 +106,11 @@ export default function App() {
     setWorkerName(creds.workerName);
   };
 
-  // Derive the full workers.dev base URL from workerName + selected account
-  const accountSubdomain = selectedAccountId ? selectedAccountId.slice(0, 6) : 'xxxxxx';
-  const workerBaseUrl = workerName.trim()
-    ? `https://${workerName.trim()}.${accountSubdomain}.workers.dev`
-    : '';
+  // Calculate live Worker Base URL
+  const activeSubdomain = workersSubdomain.trim() || 'subdomain';
+  const activeWorkerName = workerName.trim() || 'monitorflare';
+  const computedWorkerBaseUrl = `https://${activeWorkerName}.${activeSubdomain}.workers.dev`;
+  const computedAdminUrl = `${computedWorkerBaseUrl}${adminPath.startsWith('/') ? adminPath : '/' + adminPath}`;
 
   // Test Telegram Bot
   const handleTestTelegram = async () => {
@@ -129,9 +162,10 @@ export default function App() {
 
     try {
       // 1. Provision Cloudflare D1 Database
-      addLog('Provisioning Cloudflare D1 Database ("monitorflare")...', 'pending');
-      const dbUuid = await CloudflareService.createD1Database(apiToken.trim(), selectedAccountId, 'monitorflare');
-      addLog('✓ Cloudflare D1 Database Provisioned (ID: ' + dbUuid.slice(0, 8) + '...)', 'success');
+      const dbName = d1DatabaseName.trim() || 'monitorflare';
+      addLog(`Provisioning Cloudflare D1 Database ("${dbName}")...`, 'pending');
+      const dbUuid = await CloudflareService.createD1Database(apiToken.trim(), selectedAccountId, dbName);
+      addLog(`✓ Cloudflare D1 Database Provisioned (ID: ${dbUuid.slice(0, 8)}...)`, 'success');
 
       // 2. Apply All D1 Migrations
       addLog('Applying D1 Table Schemas (0000 - 0004)...', 'pending');
@@ -147,7 +181,7 @@ export default function App() {
         admin_username: adminUsername,
         admin_password_hash: pwdHash,
         admin_panel_path: adminPath,
-        base_url: workerBaseUrl,
+        base_url: computedWorkerBaseUrl,
         brand_name: brandName,
         brand_logo_url: brandLogoUrl,
       };
@@ -165,11 +199,27 @@ export default function App() {
       await CloudflareService.seedSettings(apiToken.trim(), selectedAccountId, dbUuid, settingsMap);
       addLog('✓ Admin Security Credentials & Settings Saved to D1', 'success');
 
-      // 4. Set Deployment Result Summary
+      // 4. Generate wrangler.toml Config Snippet
+      const wranglerToml = `name = "${activeWorkerName}"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat_v2"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "${dbName}"
+database_id = "${dbUuid}"
+
+[triggers]
+crons = ["* * * * *"]`;
+
+      // 5. Set Deployment Result Summary
       setDeploymentResult({
         databaseId: dbUuid,
-        adminUrl: `${workerBaseUrl}${adminPath}`,
+        workerBaseUrl: computedWorkerBaseUrl,
+        adminUrl: computedAdminUrl,
         secretPath: adminPath,
+        wranglerToml,
       });
 
       addLog('🚀 100% Client-Side Provisioning Complete!', 'success');
@@ -192,7 +242,7 @@ export default function App() {
         </div>
         <h1 className="text-3xl font-bold tracking-tight text-white">MonitorFlare 1-Click Client-Side Auto Deployer</h1>
         <p className="text-xs text-zinc-400 mt-2 max-w-md mx-auto leading-relaxed">
-          Deploy your enterprise serverless health monitoring system directly from your browser with zero backend server dependencies.
+          Deploy your serverless health monitoring system directly from your browser with zero backend server dependencies.
         </p>
       </div>
 
@@ -201,7 +251,7 @@ export default function App() {
         <div className="flex items-center justify-between px-4">
           {[
             { num: 1, label: 'Cloudflare' },
-            { num: 2, label: 'Security' },
+            { num: 2, label: 'Configuration' },
             { num: 3, label: 'Telegram' },
             { num: 4, label: 'Provision' },
             { num: 5, label: 'Complete' },
@@ -235,7 +285,7 @@ export default function App() {
           </div>
         )}
 
-        {/* STEP 1: CLOUDFLARE API TOKEN WITH CRITICAL D1 PERMISSION GUIDE */}
+        {/* STEP 1: CLOUDFLARE API TOKEN WITH D1 PERMISSION GUIDE */}
         {step === 1 && (
           <div className="space-y-6">
             <div>
@@ -275,15 +325,14 @@ export default function App() {
               {/* CRITICAL NOTE: Adding Cloudflare D1 Permission */}
               <div className="p-3 rounded-lg bg-[#121215]/90 border border-amber-500/40 text-xs text-zinc-200 space-y-2">
                 <div className="font-bold text-amber-400 flex items-center gap-1.5">
-                  <PlusCircle className="w-4 h-4" />
-                  IMPORTANT: Make sure to add Cloudflare D1 Permission!
+                  <Database className="w-4 h-4" />
+                  Required Cloudflare Permissions:
                 </div>
-                <p className="text-[11px] text-zinc-300 leading-relaxed m-0">
-                  When creating the token, click <strong>"+ Add more permissions"</strong> and select:
-                </p>
-                <div className="inline-block bg-amber-500/15 border border-amber-500/30 text-amber-300 font-mono text-[11px] px-2.5 py-1 rounded">
-                  Account → Cloudflare D1 → Edit
-                </div>
+                <ul className="text-[11px] text-zinc-300 leading-relaxed space-y-1 list-disc pl-4">
+                  <li><strong>Account → Cloudflare D1 → Edit</strong> (To auto-create D1 database)</li>
+                  <li><strong>Account → Workers Scripts → Edit</strong> (To deploy Worker)</li>
+                  <li><strong>Account → Account Settings → Read</strong> (To read Account ID)</li>
+                </ul>
               </div>
             </div>
 
@@ -295,7 +344,7 @@ export default function App() {
                     type="password"
                     value={apiToken}
                     onChange={e => setApiToken(e.target.value)}
-                    placeholder="Paste token string here... (e.g. v4.0-xxxx)"
+                    placeholder="Paste token string here..."
                     className="w-full bg-[#121215] border border-[#333339] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand font-mono"
                   />
                   <button
@@ -320,7 +369,7 @@ export default function App() {
                   <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Select Cloudflare Account</label>
                   <select
                     value={selectedAccountId}
-                    onChange={e => setSelectedAccountId(e.target.value)}
+                    onChange={e => handleAccountChange(e.target.value)}
                     className="w-full bg-[#121215] border border-[#333339] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand"
                   >
                     {accounts.map(acc => (
@@ -339,23 +388,23 @@ export default function App() {
                 disabled={!tokenVerified || !selectedAccountId}
                 className="px-6 py-2.5 bg-brand text-white rounded-lg text-xs font-semibold hover:bg-brand-hover disabled:opacity-50 flex items-center gap-2"
               >
-                Next: Security Credentials <ArrowRight className="w-4 h-4" />
+                Next: System Configuration <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </div>
         )}
 
-        {/* STEP 2: SECURITY & ADMIN CREDENTIALS */}
+        {/* STEP 2: SECURITY & SYSTEM CONFIGURATION */}
         {step === 2 && (
           <div className="space-y-6">
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div>
                 <h2 className="text-xl font-bold text-white flex items-center gap-2">
                   <Shield className="w-5 h-5 text-brand" />
-                  Step 2: Admin Security & Path
+                  Step 2: Admin & Deployment Configuration
                 </h2>
                 <p className="text-xs text-zinc-400 mt-1">
-                  Configure master admin credentials or click to generate secure random credentials.
+                  Configure master admin credentials, worker names, and custom secret admin path.
                 </p>
               </div>
 
@@ -364,52 +413,68 @@ export default function App() {
                 className="px-3 py-1.5 bg-[#29292e] hover:bg-[#333339] border border-[#333339] rounded-lg text-xs text-brand font-medium flex items-center gap-1.5 transition-colors"
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                ⚡️ Generate Random Credentials
+                ⚡️ Generate Random Config
               </button>
             </div>
 
             <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Admin Username</label>
-                <input
-                  type="text"
-                  value={adminUsername}
-                  onChange={e => setAdminUsername(e.target.value)}
-                  className="w-full bg-[#121215] border border-[#333339] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand font-mono"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Admin Password</label>
-                <input
-                  type="text"
-                  value={adminPassword}
-                  onChange={e => setAdminPassword(e.target.value)}
-                  placeholder="Enter or generate password..."
-                  className="w-full bg-[#121215] border border-[#333339] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand font-mono"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Worker Name <span className="text-zinc-500 font-normal">(subdomain of workers.dev)</span></label>
-                <div className="flex gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Admin Username</label>
                   <input
                     type="text"
-                    value={workerName}
-                    onChange={e => setWorkerName(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                    placeholder="e.g. my-status"
+                    value={adminUsername}
+                    onChange={e => setAdminUsername(e.target.value)}
                     className="w-full bg-[#121215] border border-[#333339] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand font-mono"
                     required
                   />
                 </div>
-                {workerName && selectedAccountId && (
-                  <p className="text-[11px] text-brand mt-1 font-mono">
-                    → https://{workerName}.{selectedAccountId.slice(0, 6)}.workers.dev
-                  </p>
-                )}
-                <p className="text-[11px] text-zinc-500 mt-0.5">Only lowercase letters, numbers, and hyphens.</p>
+
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Admin Password</label>
+                  <input
+                    type="text"
+                    value={adminPassword}
+                    onChange={e => setAdminPassword(e.target.value)}
+                    placeholder="Enter or generate password..."
+                    className="w-full bg-[#121215] border border-[#333339] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand font-mono"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Worker Name <span className="text-zinc-500 font-normal">(Cloudflare Worker slug)</span></label>
+                  <input
+                    type="text"
+                    value={workerName}
+                    onChange={e => setWorkerName(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                    placeholder="e.g. monitorflare"
+                    className="w-full bg-[#121215] border border-[#333339] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand font-mono"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                    Cloudflare Workers Subdomain
+                    {isFetchingSubdomain && <RefreshCw className="inline w-3 h-3 ml-1.5 animate-spin text-brand" />}
+                  </label>
+                  <div className="flex items-center">
+                    <input
+                      type="text"
+                      value={workersSubdomain}
+                      onChange={e => setWorkersSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                      placeholder="e.g. ahsvip"
+                      className="w-full bg-[#121215] border border-[#333339] rounded-l-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand font-mono"
+                      required
+                    />
+                    <span className="bg-[#29292e] border border-l-0 border-[#333339] text-zinc-400 text-xs px-3 py-2.5 rounded-r-lg font-mono flex-shrink-0">
+                      .workers.dev
+                    </span>
+                  </div>
+                </div>
               </div>
 
               <div>
@@ -423,6 +488,17 @@ export default function App() {
                 />
                 <p className="text-[11px] text-zinc-500 mt-1">Standard <code>/admin</code> path is hidden for maximum security.</p>
               </div>
+
+              {/* Live URL Preview Card */}
+              <div className="p-4 rounded-xl bg-[#121215] border border-[#333339] space-y-2">
+                <div className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">Live URL Preview</div>
+                <div className="text-xs text-emerald-400 font-mono break-all">
+                  🌐 Worker Public URL: {computedWorkerBaseUrl}
+                </div>
+                <div className="text-xs text-brand font-mono break-all">
+                  🔑 Admin Dashboard URL: {computedAdminUrl}
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-between pt-4 border-t border-[#333339]">
@@ -431,7 +507,7 @@ export default function App() {
               </button>
               <button
                 onClick={() => setStep(3)}
-                disabled={!adminUsername || !adminPassword}
+                disabled={!adminUsername || !adminPassword || !workerName || !workersSubdomain}
                 className="px-6 py-2.5 bg-brand text-white rounded-lg text-xs font-semibold hover:bg-brand-hover disabled:opacity-50 flex items-center gap-2"
               >
                 Next: Telegram Bot <ArrowRight className="w-4 h-4" />
@@ -572,14 +648,14 @@ export default function App() {
 
             <div>
               <h2 className="text-2xl font-bold text-white">MonitorFlare Successfully Provisioned!</h2>
-              <p className="text-xs text-zinc-400 mt-1">Your D1 database, security credentials, and alert bots are ready.</p>
+              <p className="text-xs text-zinc-400 mt-1">Your D1 database, security credentials, and alert settings are configured in Cloudflare.</p>
             </div>
 
             {/* Secret Credentials Card */}
             <div className="text-left bg-[#121215] border border-[#333339] rounded-xl p-5 space-y-4">
               <div className="flex items-center justify-between border-b border-[#333339] pb-3">
-                <span className="text-xs font-bold text-white uppercase tracking-wider">Deployment Secrets Summary</span>
-                <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded font-mono font-semibold">100% Client-Side Safe</span>
+                <span className="text-xs font-bold text-white uppercase tracking-wider">Deployment Summary</span>
+                <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded font-mono font-semibold">Ready to Use</span>
               </div>
 
               <div>
@@ -613,6 +689,28 @@ export default function App() {
                   </div>
                 </div>
               </div>
+
+              {/* Wrangler.toml Generated Config Snippet */}
+              {deploymentResult.wranglerToml && (
+                <div className="pt-2">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-[11px] font-semibold text-zinc-300 flex items-center gap-1.5">
+                      <FileCode className="w-3.5 h-3.5 text-brand" />
+                      Generated <code>wrangler.toml</code> for your repository:
+                    </label>
+                    <button
+                      onClick={() => copyToClipboard(deploymentResult.wranglerToml!, 'toml')}
+                      className="px-2.5 py-1 bg-[#29292e] hover:bg-[#333339] text-zinc-300 rounded text-[11px] font-mono flex items-center gap-1"
+                    >
+                      {copiedField === 'toml' ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                      Copy wrangler.toml
+                    </button>
+                  </div>
+                  <pre className="p-3 bg-[#0d0d10] border border-[#2a2a30] rounded-lg text-[11px] text-emerald-400 font-mono overflow-x-auto whitespace-pre">
+                    {deploymentResult.wranglerToml}
+                  </pre>
+                </div>
+              )}
             </div>
 
             <div className="pt-4 flex justify-center">
