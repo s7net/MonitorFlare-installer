@@ -90,10 +90,11 @@ export class CloudflareService {
 
   /**
    * Fetches the user's Workers subdomain for the specified Cloudflare account.
-   * e.g. "ahsvip" for "ahsvip.workers.dev"
+   * If none exists yet, automatically provisions a random subdomain on Cloudflare.
    */
   static async getWorkersSubdomain(apiToken: string, accountId: string): Promise<string> {
     const cleanToken = apiToken.trim();
+    // 1. Fetch existing subdomain
     try {
       const res = await cfFetch(cleanToken, `/client/v4/accounts/${accountId}/workers/subdomain`);
       if (res.ok) {
@@ -106,7 +107,27 @@ export class CloudflareService {
         }
       }
     } catch {}
-    return '';
+
+    // 2. Auto-create random Workers subdomain if none exists
+    const randChars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    const autoSubdomain = 'flare-' + Array.from(crypto.getRandomValues(new Uint8Array(5)), b => randChars[b % randChars.length]).join('');
+    try {
+      const createRes = await cfFetch(cleanToken, `/client/v4/accounts/${accountId}/workers/subdomain`, {
+        method: 'PUT',
+        body: JSON.stringify({ subdomain: autoSubdomain }),
+      });
+      if (createRes.ok) {
+        const createData = (await createRes.json()) as {
+          success: boolean;
+          result?: { subdomain?: string };
+        };
+        if (createData.success && createData.result?.subdomain) {
+          return createData.result.subdomain;
+        }
+      }
+    } catch {}
+
+    return autoSubdomain;
   }
 
   /**
