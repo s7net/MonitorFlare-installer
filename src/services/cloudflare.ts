@@ -6,8 +6,11 @@ export interface CloudflareAccount {
 /**
  * CORS Proxy Worker URL — routes all Cloudflare API calls through this Worker
  * to bypass browser CORS restrictions.
+ *
+ * Set VITE_CORS_PROXY_URL in the .env file to configure this address.
+ * After changing .env, run "npm run build" to apply.
  */
-const PROXY_BASE = 'https://monitorflare-cors-proxy.glynet-org-bc5.workers.dev/proxy';
+const PROXY_BASE = `${import.meta.env.VITE_CORS_PROXY_URL}/proxy`;
 
 /**
  * Build a proxied URL for a given Cloudflare API path.

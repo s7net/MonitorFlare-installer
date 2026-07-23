@@ -1,0 +1,9 @@
+name = "monitorflare-cors-proxy"
+main = "proxy-worker.js"
+compatibility_date = "2024-01-01"
+
+# آدرس installer که پروکسی اجازه درخواست از آن را می‌دهد.
+# برای محدود کردن دسترسی، دامنه installer خود را وارد کنید.
+# برای دسترسی آزاد (پیش‌فرض) همان "*" را بگذارید.
+[vars]
+ALLOWED_ORIGIN = "*"
