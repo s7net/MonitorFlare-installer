@@ -32950,6 +32950,12 @@ var settingsRoutes = new Elysia({ prefix: "/api" }).derive(({ store }) => {
     return ResponseHelper.error("Unauthorized", 401);
   const updated = await settingsRepo.updateSettings(body);
   return { success: true, settings: updated };
+}).post("/admin/settings", async ({ headers, body, settingsRepo, authService }) => {
+  const isAdmin = await authService.verifyCookie(headers.cookie);
+  if (!isAdmin)
+    return ResponseHelper.error("Unauthorized", 401);
+  const updated = await settingsRepo.updateSettings(body);
+  return { success: true, settings: updated };
 }).get("/admin/backup", async ({ headers, settingsRepo, monitoringRepo, notificationRepo, incidentsRepo, authService }) => {
   const isAdmin = await authService.verifyCookie(headers.cookie);
   if (!isAdmin)
@@ -33053,15 +33059,18 @@ var settingsRoutes = new Elysia({ prefix: "/api" }).derive(({ store }) => {
         return ResponseHelper.error("Could not auto-detect Cloudflare Account ID. Please enter it manually in settings.", 400);
       }
     }
-    let scriptName = "monitorflare";
-    const scriptListRes = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts`, {
-      headers: { Authorization: `Bearer ${apiToken}` }
-    });
-    const scriptListData = await scriptListRes.json();
-    if (scriptListData.success && scriptListData.result && scriptListData.result.length > 0) {
-      const match = scriptListData.result.find((s) => s.id.startsWith("flare-") || s.id.startsWith("monitorflare"));
-      if (match)
-        scriptName = match.id;
+    const host = (headers["host"] || headers["x-forwarded-host"] || "").split(":")[0];
+    let scriptName = host.split(".")[0] || "";
+    if (!scriptName || scriptName === "localhost" || scriptName === "127") {
+      const scriptListRes = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts`, {
+        headers: { Authorization: `Bearer ${apiToken}` }
+      });
+      const scriptListData = await scriptListRes.json();
+      if (scriptListData.success && scriptListData.result && scriptListData.result.length > 0) {
+        const match = scriptListData.result.find((s) => s.id.startsWith("flare-") || s.id.startsWith("probe-") || s.id.startsWith("monitorflare"));
+        if (match)
+          scriptName = match.id;
+      }
     }
     const scriptDetailRes = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${scriptName}`, {
       headers: { Authorization: `Bearer ${apiToken}` }
@@ -35081,6 +35090,13 @@ function AdminDashboard({ adminPath = "/manage-x7k9", corsProxyUrl = "https://mo
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ cfApiToken: token, cfAccountId: accountId })
               });
+              if (!res.ok) {
+                const text = await res.text();
+                let errMsg = 'Failed to save credentials';
+                try { const data = JSON.parse(text); errMsg = data.message || data.error || errMsg; } catch {}
+                alert('\u2717 ' + errMsg);
+                return;
+              }
               const data = await res.json();
               if (data.success) {
                 alert('\u2713 Cloudflare Update Credentials Saved Successfully!');
