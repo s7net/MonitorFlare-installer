@@ -18,7 +18,7 @@ A 100% client-side React SPA app built with Vite and TailwindCSS to provision an
 ### Local Development
 ```bash
 # 1. Clone repository
-git clone https://github.com/ByteHolic/monitorflare-installer.git
+git clone https://github.com/s7net/monitorflare-installer.git
 cd monitorflare-installer
 
 # 2. Install dependencies
