@@ -164,8 +164,8 @@ export default function App() {
       // 1. Provision Cloudflare D1 Database
       const dbName = d1DatabaseName.trim() || 'monitorflare';
       addLog(`Provisioning Cloudflare D1 Database ("${dbName}")...`, 'pending');
-      const dbUuid = await CloudflareService.createD1Database(apiToken.trim(), selectedAccountId, dbName);
-      addLog(`✓ Cloudflare D1 Database Provisioned (ID: ${dbUuid.slice(0, 8)}...)`, 'success');
+      const { uuid: dbUuid, name: createdDbName } = await CloudflareService.createD1Database(apiToken.trim(), selectedAccountId, dbName);
+      addLog(`✓ Cloudflare D1 Database Provisioned ("${createdDbName}", ID: ${dbUuid.slice(0, 8)}...)`, 'success');
 
       // 2. Apply All D1 Migrations
       addLog('Applying D1 Table Schemas (0000 - 0004)...', 'pending');
@@ -243,7 +243,7 @@ compatibility_flags = ["nodejs_compat_v2"]
 
 [[d1_databases]]
 binding = "DB"
-database_name = "${dbName}"
+database_name = "${createdDbName}"
 database_id = "${dbUuid}"
 
 [triggers]

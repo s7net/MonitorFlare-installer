@@ -111,44 +111,61 @@ export class CloudflareService {
 
   /**
    * Provisions a new D1 Serverless Database.
+   * Auto-increments database name (e.g. monitorflare-1, monitorflare-2) if name already exists.
    */
   static async createD1Database(
     apiToken: string,
     accountId: string,
-    name: string = 'monitorflare'
-  ): Promise<string> {
+    baseName: string = 'monitorflare'
+  ): Promise<{ uuid: string; name: string }> {
     const cleanToken = apiToken.trim();
+
+    // 1. Check existing databases on account
+    let existingNames: string[] = [];
+    try {
+      const listRes = await cfFetch(
+        cleanToken,
+        `/client/v4/accounts/${accountId}/d1/database`
+      );
+      if (listRes.ok) {
+        const listData = (await listRes.json()) as {
+          success: boolean;
+          result?: Array<{ uuid: string; name: string }>;
+        };
+        if (listData.result) {
+          existingNames = listData.result.map((d) => d.name);
+        }
+      }
+    } catch {}
+
+    // 2. Determine target unique name
+    let targetName = baseName;
+    if (existingNames.includes(targetName)) {
+      let counter = 1;
+      while (existingNames.includes(`${baseName}-${counter}`)) {
+        counter++;
+      }
+      targetName = `${baseName}-${counter}`;
+    }
+
+    // 3. Provision the new unique database
     const res = await cfFetch(
       cleanToken,
       `/client/v4/accounts/${accountId}/d1/database`,
       {
         method: 'POST',
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name: targetName }),
       }
     );
 
     const data = (await res.json()) as {
       success: boolean;
-      result?: { uuid: string };
+      result?: { uuid: string; name: string };
       errors?: Array<{ message: string }>;
     };
 
     if (res.ok && data.success && data.result?.uuid) {
-      return data.result.uuid;
-    }
-
-    // If database already exists, list databases to find uuid
-    if (data.errors && data.errors.some((e) => e.message.includes('already exists'))) {
-      const listRes = await cfFetch(
-        cleanToken,
-        `/client/v4/accounts/${accountId}/d1/database`
-      );
-      const listData = (await listRes.json()) as {
-        success: boolean;
-        result?: Array<{ uuid: string; name: string }>;
-      };
-      const existing = listData.result?.find((d) => d.name === name);
-      if (existing) return existing.uuid;
+      return { uuid: data.result.uuid, name: targetName };
     }
 
     throw new Error(data.errors?.[0]?.message || 'Failed to create Cloudflare D1 Database');
