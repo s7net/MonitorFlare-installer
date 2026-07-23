@@ -349,16 +349,16 @@ crons = ["* * * * *"]`;
               </p>
             </div>
 
-            {/* Token Creation Card */}
+            {/* Token Creation & Visual Step-by-Step Guide Card */}
             <div className="p-5 rounded-xl bg-gradient-to-r from-brand/20 to-orange-600/10 border border-brand/30 space-y-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-brand/20 pb-3">
                 <div className="space-y-1">
                   <div className="text-sm font-bold text-white flex items-center gap-2">
                     <KeyRound className="w-4 h-4 text-brand" />
-                    Open Cloudflare API Token Page
+                    Step 1.1: Open Cloudflare API Tokens Page
                   </div>
                   <p className="text-xs text-zinc-300">
-                    Click the button to open Cloudflare token creator page.
+                    Click the button to open Cloudflare token creation page in a new tab.
                   </p>
                 </div>
 
@@ -373,17 +373,46 @@ crons = ["* * * * *"]`;
                 </a>
               </div>
 
-              {/* CRITICAL NOTE: Adding Cloudflare D1 Permission */}
-              <div className="p-3 rounded-lg bg-[#121215]/90 border border-amber-500/40 text-xs text-zinc-200 space-y-2">
-                <div className="font-bold text-amber-400 flex items-center gap-1.5">
-                  <Database className="w-4 h-4" />
-                  Required Cloudflare Permissions:
+              {/* Visual Cloudflare UI Permissions Guide */}
+              <div className="p-4 rounded-lg bg-[#121215]/95 border border-brand/40 text-xs space-y-3">
+                <div className="font-bold text-white flex items-center gap-1.5 border-b border-[#2a2a30] pb-2">
+                  <Database className="w-4 h-4 text-amber-400" />
+                  <span>Step 1.2: Set Exact Cloudflare Permissions (Matches Cloudflare UI)</span>
                 </div>
-                <ul className="text-[11px] text-zinc-300 leading-relaxed space-y-1 list-disc pl-4">
-                  <li><strong>Account → Cloudflare D1 → Edit</strong> (To auto-create D1 database)</li>
-                  <li><strong>Account → Workers Scripts → Edit</strong> (To deploy Worker)</li>
-                  <li><strong>Account → Account Settings → Read</strong> (To read Account ID)</li>
-                </ul>
+                
+                <p className="text-[11px] text-zinc-300 leading-relaxed m-0">
+                  In Cloudflare under <strong>Permissions</strong> section, click <strong>"+ Add more permissions"</strong> and set these 3 rows:
+                </p>
+
+                {/* Cloudflare Table UI Mock */}
+                <div className="border border-[#333339] rounded-lg overflow-hidden font-mono text-[11px]">
+                  <div className="bg-[#1c1c20] px-3 py-1.5 text-[10px] text-zinc-400 font-semibold uppercase flex justify-between border-b border-[#333339]">
+                    <span>Permission Group</span>
+                    <span>Category</span>
+                    <span>Access Level</span>
+                  </div>
+                  <div className="divide-y divide-[#26262b] bg-[#141418]">
+                    <div className="px-3 py-2 flex items-center justify-between text-amber-300">
+                      <span>Account</span>
+                      <span>Cloudflare D1</span>
+                      <span className="bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded font-bold">Edit</span>
+                    </div>
+                    <div className="px-3 py-2 flex items-center justify-between text-blue-300">
+                      <span>Account</span>
+                      <span>Workers Scripts</span>
+                      <span className="bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded font-bold">Edit</span>
+                    </div>
+                    <div className="px-3 py-2 flex items-center justify-between text-emerald-300">
+                      <span>Account</span>
+                      <span>Account Settings</span>
+                      <span className="bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded font-bold">Read</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded bg-brand/10 border border-brand/30 text-[11px] text-zinc-200">
+                  📍 <strong>Account Resources:</strong> Select <code>All accounts</code> (or your specific Cloudflare account).
+                </div>
               </div>
             </div>
 
