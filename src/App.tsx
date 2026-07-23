@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { CloudflareService, CloudflareAccount } from './services/cloudflare';
 import { generateRandomCredentials, hashPassword } from './utils/credentials';
-import { Shield, Cloud, Bot, Sparkles, CheckCircle2, AlertCircle, Copy, Check, ArrowRight, RefreshCw, ExternalLink, KeyRound, Database, Cpu, UserCheck, MousePointerClick } from 'lucide-react';
+import { Shield, Cloud, Bot, Sparkles, CheckCircle2, AlertCircle, Copy, Check, ArrowRight, RefreshCw, ExternalLink, KeyRound, Database, Cpu, UserCheck, PlusCircle } from 'lucide-react';
 
 export default function App() {
   const [step, setStep] = useState<number>(1);
@@ -97,8 +97,8 @@ export default function App() {
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  // Cloudflare API Token Creation URL
-  const cloudflareTokenUrl = 'https://dash.cloudflare.com/profile/api-tokens';
+  // Direct Token URL
+  const cloudflareTokenUrl = 'https://dash.cloudflare.com/profile/api-tokens?template=edit_workers';
 
   // Run 100% Client-Side Automated Provisioning & Deployment
   const handleRunAutoDeploy = async () => {
@@ -225,27 +225,30 @@ export default function App() {
           </div>
         )}
 
-        {/* STEP 1: CLOUDFLARE API TOKEN WITH 3-STEP VISUAL GUIDANCE */}
+        {/* STEP 1: CLOUDFLARE API TOKEN WITH CRITICAL D1 PERMISSION GUIDE */}
         {step === 1 && (
           <div className="space-y-6">
             <div>
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <Cloud className="w-5 h-5 text-brand" />
-                Step 1: Cloudflare Token Verification
+                Step 1: Cloudflare Token Connection
               </h2>
               <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-                Connect your Cloudflare account in 3 quick clicks.
+                Create a Cloudflare API Token with Workers & D1 Database permissions.
               </p>
             </div>
 
-            {/* 3-Step Quick Guidance Card */}
+            {/* Token Creation Card */}
             <div className="p-5 rounded-xl bg-gradient-to-r from-brand/20 to-orange-600/10 border border-brand/30 space-y-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-brand/20 pb-3">
                 <div className="space-y-1">
                   <div className="text-sm font-bold text-white flex items-center gap-2">
                     <KeyRound className="w-4 h-4 text-brand" />
-                    How to get your Cloudflare API Token (3 Clicks):
+                    Open Cloudflare API Token Page
                   </div>
+                  <p className="text-xs text-zinc-300">
+                    Click the button to open Cloudflare token creator page.
+                  </p>
                 </div>
 
                 <a
@@ -254,35 +257,22 @@ export default function App() {
                   rel="noreferrer"
                   className="px-5 py-2.5 bg-brand hover:bg-brand-hover text-white rounded-lg text-xs font-bold inline-flex items-center gap-2 flex-shrink-0 no-underline shadow-lg shadow-brand/25 transition-all transform hover:-translate-y-0.5"
                 >
-                  <span>🔑 Open Cloudflare Tokens Page</span>
+                  <span>🚀 Open Cloudflare Token Page</span>
                   <ExternalLink className="w-4 h-4" />
                 </a>
               </div>
 
-              {/* Step-by-step visual bullet points */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                <div className="p-2.5 rounded-lg bg-[#121215]/80 border border-[#333339] space-y-1">
-                  <div className="font-bold text-brand flex items-center gap-1">
-                    <span className="w-4 h-4 rounded-full bg-brand/20 text-brand flex items-center justify-center text-[10px]">1</span>
-                    Click "Create Token"
-                  </div>
-                  <p className="text-[11px] text-zinc-400 m-0">On the Cloudflare page, click the blue button.</p>
+              {/* CRITICAL NOTE: Adding Cloudflare D1 Permission */}
+              <div className="p-3 rounded-lg bg-[#121215]/90 border border-amber-500/40 text-xs text-zinc-200 space-y-2">
+                <div className="font-bold text-amber-400 flex items-center gap-1.5">
+                  <PlusCircle className="w-4 h-4" />
+                  IMPORTANT: Make sure to add Cloudflare D1 Permission!
                 </div>
-
-                <div className="p-2.5 rounded-lg bg-[#121215]/80 border border-[#333339] space-y-1">
-                  <div className="font-bold text-brand flex items-center gap-1">
-                    <span className="w-4 h-4 rounded-full bg-brand/20 text-brand flex items-center justify-center text-[10px]">2</span>
-                    Use "Edit Workers"
-                  </div>
-                  <p className="text-[11px] text-zinc-400 m-0">Click <em>"Use template"</em> next to Edit Cloudflare Workers.</p>
-                </div>
-
-                <div className="p-2.5 rounded-lg bg-[#121215]/80 border border-[#333339] space-y-1">
-                  <div className="font-bold text-brand flex items-center gap-1">
-                    <span className="w-4 h-4 rounded-full bg-brand/20 text-brand flex items-center justify-center text-[10px]">3</span>
-                    Copy & Paste Below
-                  </div>
-                  <p className="text-[11px] text-zinc-400 m-0">Click <em>"Create Token"</em> and copy the generated token string.</p>
+                <p className="text-[11px] text-zinc-300 leading-relaxed m-0">
+                  When creating the token, click <strong>"+ Add more permissions"</strong> and select:
+                </p>
+                <div className="inline-block bg-amber-500/15 border border-amber-500/30 text-amber-300 font-mono text-[11px] px-2.5 py-1 rounded">
+                  Account → Cloudflare D1 → Edit
                 </div>
               </div>
             </div>
