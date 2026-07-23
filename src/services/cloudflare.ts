@@ -6,17 +6,29 @@ export interface CloudflareAccount {
 export class CloudflareService {
   /**
    * Verifies if the provided Cloudflare API Token is valid.
+   * Checks both /user/tokens/verify and /accounts API endpoints.
    */
   static async verifyToken(apiToken: string): Promise<boolean> {
+    const cleanToken = apiToken.trim();
+    if (!cleanToken) return false;
+
+    // 1. Check /user/tokens/verify
     try {
       const res = await fetch('https://api.cloudflare.com/client/v4/user/tokens/verify', {
         headers: {
-          Authorization: `Bearer ${apiToken}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${cleanToken}`,
         },
       });
-      const data = (await res.json()) as { success: boolean };
-      return res.ok && data.success;
+      if (res.ok) {
+        const data = (await res.json()) as { success: boolean };
+        if (data.success) return true;
+      }
+    } catch {}
+
+    // 2. Fallback check via /accounts
+    try {
+      const accs = await this.getAccounts(cleanToken);
+      return accs.length > 0;
     } catch {
       return false;
     }
@@ -26,27 +38,28 @@ export class CloudflareService {
    * Fetches the user's Cloudflare Accounts.
    */
   static async getAccounts(apiToken: string): Promise<CloudflareAccount[]> {
+    const cleanToken = apiToken.trim();
     const res = await fetch('https://api.cloudflare.com/client/v4/accounts', {
       headers: {
-        Authorization: `Bearer ${apiToken}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${cleanToken}`,
       },
     });
-    const data = (await res.json()) as { success: boolean; result?: CloudflareAccount[] };
+    const data = (await res.json()) as { success: boolean; result?: CloudflareAccount[]; errors?: Array<{ message: string }> };
     if (res.ok && data.success && data.result) {
       return data.result.map(acc => ({ id: acc.id, name: acc.name }));
     }
-    throw new Error('Failed to retrieve Cloudflare Accounts. Ensure API token has Account Read permissions.');
+    throw new Error(data.errors?.[0]?.message || 'Failed to retrieve Cloudflare Accounts. Ensure API token has Account Read permissions.');
   }
 
   /**
    * Provisions a new D1 Serverless Database.
    */
   static async createD1Database(apiToken: string, accountId: string, name: string = 'monitorflare'): Promise<string> {
+    const cleanToken = apiToken.trim();
     const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${apiToken}`,
+        Authorization: `Bearer ${cleanToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ name }),
@@ -62,8 +75,7 @@ export class CloudflareService {
     if (data.errors && data.errors.some(e => e.message.includes('already exists'))) {
       const listRes = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database`, {
         headers: {
-          Authorization: `Bearer ${apiToken}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${cleanToken}`,
         },
       });
       const listData = (await listRes.json()) as { success: boolean; result?: Array<{ uuid: string; name: string }> };
@@ -78,10 +90,11 @@ export class CloudflareService {
    * Executes SQL Statements on Cloudflare D1 via REST API.
    */
   static async executeD1Query(apiToken: string, accountId: string, databaseId: string, sql: string, params: any[] = []): Promise<any> {
+    const cleanToken = apiToken.trim();
     const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${databaseId}/query`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${apiToken}`,
+        Authorization: `Bearer ${cleanToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
