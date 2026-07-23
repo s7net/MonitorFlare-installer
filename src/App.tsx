@@ -235,6 +235,21 @@ export default function App() {
       );
       addLog('✓ 1-Minute Health Check Cron Trigger Activated', 'success');
 
+      // 7. Wait for Cloudflare Edge Network Propagation (30s Polling)
+      addLog('Waiting for Cloudflare Edge network route to propagate (usually ~15-30s)...', 'pending');
+      const isReady = await CloudflareService.waitForWorkerEdgePropagation(
+        computedWorkerBaseUrl,
+        (progressMsg) => addLog(progressMsg, 'pending'),
+        12,
+        3000
+      );
+
+      if (isReady) {
+        addLog('✓ Cloudflare Worker is 100% LIVE and active on Edge network!', 'success');
+      } else {
+        addLog('✓ Provisioning complete! Route is propagating on Cloudflare Edge.', 'success');
+      }
+
       // 7. Generate wrangler.toml Config Snippet
       const wranglerToml = `name = "${activeWorkerName}"
 main = "src/index.ts"

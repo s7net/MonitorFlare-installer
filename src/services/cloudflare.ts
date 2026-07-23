@@ -427,5 +427,29 @@ export class CloudflareService {
       return false;
     }
   }
+
+  /**
+   * Polls the deployed Worker URL until it is accessible on Cloudflare Edge network.
+   */
+  static async waitForWorkerEdgePropagation(
+    url: string,
+    onProgress?: (message: string) => void,
+    maxAttempts: number = 10,
+    delayMs: number = 3000
+  ): Promise<boolean> {
+    for (let i = 1; i <= maxAttempts; i++) {
+      if (onProgress) {
+        onProgress(`Waiting for Cloudflare Edge network route propagation... (attempt ${i}/${maxAttempts})`);
+      }
+      try {
+        await fetch(url, { mode: 'no-cors' });
+        return true;
+      } catch {
+        // Edge route not ready yet
+      }
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+    return false;
+  }
 }
 
