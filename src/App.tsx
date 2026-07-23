@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CloudflareService, CloudflareAccount } from './services/cloudflare';
-import { generateRandomCredentials, hashPassword } from './utils/credentials';
+import { generateRandomCredentials, generateWorkerName, hashPassword } from './utils/credentials';
 import { Shield, Cloud, Bot, Sparkles, CheckCircle2, AlertCircle, Copy, Check, ArrowRight, RefreshCw, ExternalLink, KeyRound, Database, Cpu, UserCheck, PlusCircle } from 'lucide-react';
 
 export default function App() {
@@ -15,6 +15,7 @@ export default function App() {
   const [adminUsername, setAdminUsername] = useState<string>('admin');
   const [adminPassword, setAdminPassword] = useState<string>('');
   const [adminPath, setAdminPath] = useState<string>('/manage-x7k9');
+  const [workerName, setWorkerName] = useState<string>(() => generateWorkerName());
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   // Telegram Integration
@@ -26,7 +27,6 @@ export default function App() {
   // Site Brand Settings
   const [brandName, setBrandName] = useState<string>('MonitorFlare Status');
   const [brandLogoUrl, setBrandLogoUrl] = useState<string>('');
-  const [baseUrl, setBaseUrl] = useState<string>('');
 
   // Auto-Deployment Execution Progress
   const [isDeploying, setIsDeploying] = useState<boolean>(false);
@@ -70,7 +70,14 @@ export default function App() {
     setAdminUsername(creds.adminUsername);
     setAdminPassword(creds.adminPassword);
     setAdminPath(creds.adminPath);
+    setWorkerName(creds.workerName);
   };
+
+  // Derive the full workers.dev base URL from workerName + selected account
+  const accountSubdomain = selectedAccountId ? selectedAccountId.slice(0, 6) : 'xxxxxx';
+  const workerBaseUrl = workerName.trim()
+    ? `https://${workerName.trim()}.${accountSubdomain}.workers.dev`
+    : '';
 
   // Test Telegram Bot
   const handleTestTelegram = async () => {
@@ -140,7 +147,7 @@ export default function App() {
         admin_username: adminUsername,
         admin_password_hash: pwdHash,
         admin_panel_path: adminPath,
-        base_url: baseUrl,
+        base_url: workerBaseUrl,
         brand_name: brandName,
         brand_logo_url: brandLogoUrl,
       };
@@ -161,7 +168,7 @@ export default function App() {
       // 4. Set Deployment Result Summary
       setDeploymentResult({
         databaseId: dbUuid,
-        adminUrl: `https://monitorflare.${selectedAccountId.slice(0, 6)}.workers.dev${adminPath}`,
+        adminUrl: `${workerBaseUrl}${adminPath}`,
         secretPath: adminPath,
       });
 
@@ -386,6 +393,26 @@ export default function App() {
               </div>
 
               <div>
+                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Worker Name <span className="text-zinc-500 font-normal">(subdomain of workers.dev)</span></label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={workerName}
+                    onChange={e => setWorkerName(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                    placeholder="e.g. my-status"
+                    className="w-full bg-[#121215] border border-[#333339] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand font-mono"
+                    required
+                  />
+                </div>
+                {workerName && selectedAccountId && (
+                  <p className="text-[11px] text-brand mt-1 font-mono">
+                    → https://{workerName}.{selectedAccountId.slice(0, 6)}.workers.dev
+                  </p>
+                )}
+                <p className="text-[11px] text-zinc-500 mt-0.5">Only lowercase letters, numbers, and hyphens.</p>
+              </div>
+
+              <div>
                 <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Secret Admin Panel Path</label>
                 <input
                   type="text"
@@ -395,18 +422,6 @@ export default function App() {
                   required
                 />
                 <p className="text-[11px] text-zinc-500 mt-1">Standard <code>/admin</code> path is hidden for maximum security.</p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1.5">Worker Base URL <span className="text-zinc-500 font-normal">(Optional — e.g. https://monitorflare.xxx.workers.dev)</span></label>
-                <input
-                  type="text"
-                  value={baseUrl}
-                  onChange={e => setBaseUrl(e.target.value)}
-                  placeholder="https://monitorflare.xxx.workers.dev"
-                  className="w-full bg-[#121215] border border-[#333339] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-brand font-mono"
-                />
-                <p className="text-[11px] text-zinc-500 mt-1">Used for status page links in alert messages. Can be set later in Admin Settings.</p>
               </div>
             </div>
 
