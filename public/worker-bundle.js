@@ -7756,6 +7756,71 @@ var init_expressions = __esm({
   }
 });
 
+// node_modules/drizzle-orm/expressions.js
+var init_expressions2 = __esm({
+  "node_modules/drizzle-orm/expressions.js"() {
+    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+    init_performance2();
+    init_expressions();
+  }
+});
+
+// node_modules/drizzle-orm/logger.js
+var _a34, ConsoleLogWriter, _a35, DefaultLogger, _a36, NoopLogger;
+var init_logger = __esm({
+  "node_modules/drizzle-orm/logger.js"() {
+    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+    init_performance2();
+    init_entity();
+    ConsoleLogWriter = class {
+      write(message) {
+        console.log(message);
+      }
+    };
+    __name(ConsoleLogWriter, "ConsoleLogWriter");
+    _a34 = entityKind;
+    __publicField(ConsoleLogWriter, _a34, "ConsoleLogWriter");
+    DefaultLogger = class {
+      writer;
+      constructor(config2) {
+        this.writer = config2?.writer ?? new ConsoleLogWriter();
+      }
+      logQuery(query, params) {
+        const stringifiedParams = params.map((p) => {
+          try {
+            return JSON.stringify(p);
+          } catch {
+            return String(p);
+          }
+        });
+        const paramsStr = stringifiedParams.length ? ` -- params: [${stringifiedParams.join(", ")}]` : "";
+        this.writer.write(`Query: ${query}${paramsStr}`);
+      }
+    };
+    __name(DefaultLogger, "DefaultLogger");
+    _a35 = entityKind;
+    __publicField(DefaultLogger, _a35, "DefaultLogger");
+    NoopLogger = class {
+      logQuery() {
+      }
+    };
+    __name(NoopLogger, "NoopLogger");
+    _a36 = entityKind;
+    __publicField(NoopLogger, _a36, "NoopLogger");
+  }
+});
+
+// node_modules/drizzle-orm/operations.js
+var init_operations = __esm({
+  "node_modules/drizzle-orm/operations.js"() {
+    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+    init_performance2();
+  }
+});
+
 // node_modules/drizzle-orm/query-promise.js
 var _a37, QueryPromise;
 var init_query_promise = __esm({
@@ -8293,6 +8358,30 @@ var init_utils2 = __esm({
     __name(applyMixins, "applyMixins");
     __name(getTableColumns, "getTableColumns");
     __name(getTableLikeName, "getTableLikeName");
+  }
+});
+
+// node_modules/drizzle-orm/index.js
+var init_drizzle_orm = __esm({
+  "node_modules/drizzle-orm/index.js"() {
+    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+    init_performance2();
+    init_alias();
+    init_column_builder();
+    init_column();
+    init_entity();
+    init_errors();
+    init_expressions2();
+    init_logger();
+    init_operations();
+    init_query_promise();
+    init_relations();
+    init_sql2();
+    init_subquery();
+    init_table();
+    init_utils2();
+    init_view_common();
   }
 });
 
@@ -11855,14 +11944,361 @@ var init_schema = __esm({
   }
 });
 
-// src/modules/settings/repository.ts
+// src/shared/config.ts
+var CONFIG;
+var init_config = __esm({
+  "src/shared/config.ts"() {
+    "use strict";
+    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+    init_performance2();
+    CONFIG = {
+      DEFAULT_METHOD: "GET",
+      DEFAULT_TIMEOUT: 1e4,
+      DEFAULT_EXPECTED_STATUS: 200,
+      HEALTH_CHECK_LIMIT: 1440,
+      UPTIME_CALCULATION_LIMIT: 100
+    };
+  }
+});
+
+// src/modules/monitoring/repository.ts
 var repository_exports = {};
 __export(repository_exports, {
+  MonitoringRepository: () => MonitoringRepository
+});
+var MonitoringRepository;
+var init_repository = __esm({
+  "src/modules/monitoring/repository.ts"() {
+    "use strict";
+    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+    init_performance2();
+    init_drizzle_orm();
+    init_schema();
+    init_config();
+    MonitoringRepository = class {
+      constructor(db) {
+        this.db = db;
+      }
+      mapRowToService(row) {
+        let checkRegions = null;
+        if (row.checkRegions || row.check_regions) {
+          const raw = row.checkRegions || row.check_regions;
+          try {
+            checkRegions = typeof raw === "string" ? JSON.parse(raw) : raw;
+          } catch {
+            checkRegions = String(raw).split(",").map((s) => s.trim()).filter(Boolean);
+          }
+        }
+        let parsedHeaders = null;
+        const rawHeaders = row.headers;
+        if (rawHeaders) {
+          if (typeof rawHeaders === "object") {
+            parsedHeaders = rawHeaders;
+          } else if (typeof rawHeaders === "string" && rawHeaders.trim()) {
+            try {
+              parsedHeaders = JSON.parse(rawHeaders);
+            } catch {
+              parsedHeaders = null;
+            }
+          }
+        }
+        const isShowUrl = row.showUrl !== void 0 ? Boolean(row.showUrl) : row.show_url !== void 0 ? Boolean(row.show_url) : true;
+        const isSslCheck = row.sslCheck !== void 0 ? Boolean(row.sslCheck) : row.ssl_check !== void 0 ? Boolean(row.ssl_check) : false;
+        return {
+          id: row.id,
+          name: row.name,
+          url: row.url,
+          method: row.method || CONFIG.DEFAULT_METHOD,
+          timeout: row.timeout || CONFIG.DEFAULT_TIMEOUT,
+          expectedStatus: row.expectedStatus || CONFIG.DEFAULT_EXPECTED_STATUS,
+          checkType: row.checkType || row.check_type || "direct",
+          globalpingType: row.globalpingType || row.globalping_type || "http",
+          checkRegions,
+          showUrl: isShowUrl,
+          headers: parsedHeaders,
+          keyword: row.keyword || row.keyword === "" ? row.keyword : null,
+          groupName: row.groupName || row.group_name || null,
+          sslCheck: isSslCheck,
+          heartbeatToken: row.heartbeatToken || row.heartbeat_token || null,
+          heartbeatInterval: row.heartbeatInterval || row.heartbeat_interval || null,
+          maxRetries: row.maxRetries || row.max_retries || 1,
+          consecutiveFails: row.consecutiveFails || row.consecutive_fails || 0,
+          lastCheckedAt: row.lastCheckedAt || row.last_checked_at ? new Date(row.lastCheckedAt || row.last_checked_at) : null,
+          lastStatus: row.lastStatus || row.last_status || null,
+          createdAt: new Date(row.createdAt || row.created_at)
+        };
+      }
+      async createService(data) {
+        let regionsJson = null;
+        if (Array.isArray(data.checkRegions)) {
+          regionsJson = JSON.stringify(data.checkRegions);
+        } else if (typeof data.checkRegions === "string" && data.checkRegions.trim()) {
+          regionsJson = JSON.stringify(data.checkRegions.split(",").map((s) => s.trim()).filter(Boolean));
+        }
+        let headersJson = null;
+        if (data.headers) {
+          if (typeof data.headers === "object") {
+            headersJson = JSON.stringify(data.headers);
+          } else if (typeof data.headers === "string" && data.headers.trim()) {
+            headersJson = data.headers.trim();
+          }
+        }
+        const expNum = Number(data.expectedStatus);
+        const expectedStatus = !isNaN(expNum) && expNum > 0 ? expNum : CONFIG.DEFAULT_EXPECTED_STATUS;
+        const timeoutNum = Number(data.timeout);
+        const timeout = !isNaN(timeoutNum) && timeoutNum > 0 ? timeoutNum : CONFIG.DEFAULT_TIMEOUT;
+        const maxRetriesNum = Number(data.maxRetries);
+        const maxRetries = !isNaN(maxRetriesNum) && maxRetriesNum > 0 ? maxRetriesNum : 1;
+        const serviceRow = {
+          id: crypto.randomUUID(),
+          name: data.name,
+          url: data.url,
+          method: data.method || CONFIG.DEFAULT_METHOD,
+          timeout,
+          expectedStatus,
+          checkType: data.checkType || "direct",
+          globalpingType: data.globalpingType || "http",
+          checkRegions: regionsJson,
+          showUrl: data.showUrl !== void 0 ? Boolean(data.showUrl) : true,
+          headers: headersJson,
+          keyword: data.keyword || null,
+          groupName: data.groupName || null,
+          sslCheck: data.sslCheck !== void 0 ? Boolean(data.sslCheck) : false,
+          heartbeatToken: data.checkType === "heartbeat" ? data.heartbeatToken || crypto.randomUUID().slice(0, 16) : null,
+          heartbeatInterval: data.heartbeatInterval ? Number(data.heartbeatInterval) : null,
+          maxRetries,
+          consecutiveFails: 0,
+          createdAt: /* @__PURE__ */ new Date()
+        };
+        await this.db.insert(services).values(serviceRow);
+        return this.mapRowToService(serviceRow);
+      }
+      async getServiceById(id) {
+        const result = await this.db.select().from(services).where(eq(services.id, id)).get();
+        return result ? this.mapRowToService(result) : null;
+      }
+      async getServiceByHeartbeatToken(token) {
+        const result = await this.db.select().from(services).where(eq(services.heartbeatToken, token)).get();
+        return result ? this.mapRowToService(result) : null;
+      }
+      async getAllServices() {
+        const rows = await this.db.select().from(services);
+        return rows.map((r) => this.mapRowToService(r));
+      }
+      async updateService(id, data) {
+        const updateData = {};
+        if (data.name !== void 0)
+          updateData.name = data.name;
+        if (data.url !== void 0)
+          updateData.url = data.url;
+        if (data.method !== void 0)
+          updateData.method = data.method;
+        if (data.timeout !== void 0) {
+          const t2 = Number(data.timeout);
+          updateData.timeout = !isNaN(t2) && t2 > 0 ? t2 : CONFIG.DEFAULT_TIMEOUT;
+        }
+        if (data.expectedStatus !== void 0) {
+          const exp = Number(data.expectedStatus);
+          updateData.expectedStatus = !isNaN(exp) && exp > 0 ? exp : CONFIG.DEFAULT_EXPECTED_STATUS;
+        }
+        if (data.maxRetries !== void 0) {
+          const mr = Number(data.maxRetries);
+          updateData.maxRetries = !isNaN(mr) && mr > 0 ? mr : 1;
+        }
+        if (data.consecutiveFails !== void 0) {
+          updateData.consecutiveFails = Number(data.consecutiveFails) || 0;
+        }
+        if (data.checkType !== void 0)
+          updateData.checkType = data.checkType;
+        if (data.globalpingType !== void 0)
+          updateData.globalpingType = data.globalpingType;
+        if (data.showUrl !== void 0)
+          updateData.showUrl = Boolean(data.showUrl);
+        if (data.keyword !== void 0)
+          updateData.keyword = data.keyword || null;
+        if (data.groupName !== void 0)
+          updateData.groupName = data.groupName || null;
+        if (data.sslCheck !== void 0)
+          updateData.sslCheck = Boolean(data.sslCheck);
+        if (data.heartbeatToken !== void 0)
+          updateData.heartbeatToken = data.heartbeatToken;
+        if (data.heartbeatInterval !== void 0)
+          updateData.heartbeatInterval = data.heartbeatInterval ? Number(data.heartbeatInterval) : null;
+        if (data.lastCheckedAt !== void 0)
+          updateData.lastCheckedAt = data.lastCheckedAt;
+        if (data.lastStatus !== void 0)
+          updateData.lastStatus = data.lastStatus;
+        if (data.headers !== void 0) {
+          if (typeof data.headers === "object") {
+            updateData.headers = JSON.stringify(data.headers);
+          } else if (typeof data.headers === "string") {
+            updateData.headers = data.headers.trim() || null;
+          } else {
+            updateData.headers = null;
+          }
+        }
+        if (data.checkRegions !== void 0) {
+          if (Array.isArray(data.checkRegions)) {
+            updateData.checkRegions = JSON.stringify(data.checkRegions);
+          } else if (typeof data.checkRegions === "string") {
+            updateData.checkRegions = JSON.stringify(data.checkRegions.split(",").map((s) => s.trim()).filter(Boolean));
+          } else {
+            updateData.checkRegions = null;
+          }
+        }
+        if (Object.keys(updateData).length > 0) {
+          await this.db.update(services).set(updateData).where(eq(services.id, id));
+        }
+      }
+      async deleteService(id) {
+        await this.db.delete(services).where(eq(services.id, id));
+      }
+    };
+    __name(MonitoringRepository, "MonitoringRepository");
+  }
+});
+
+// src/modules/health/globalping.ts
+var GlobalpingClient;
+var init_globalping = __esm({
+  "src/modules/health/globalping.ts"() {
+    "use strict";
+    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+    init_performance2();
+    GlobalpingClient = class {
+      static async runCheck(targetUrlOrHost, method = "GET", expectedStatus = 200, regions, timeoutMs = 1e4, gpType = "http") {
+        try {
+          let targetHost = targetUrlOrHost.trim();
+          let path = "/";
+          try {
+            if (targetHost.startsWith("http://") || targetHost.startsWith("https://")) {
+              const parsed = new URL(targetHost);
+              targetHost = parsed.hostname;
+              path = parsed.pathname + parsed.search;
+            }
+          } catch {
+          }
+          const locations = regions && regions.length > 0 ? regions.map((r) => {
+            const trimmed = r.trim();
+            if (trimmed.length === 2) {
+              if (["EU", "NA", "SA", "AS", "AF", "OC"].includes(trimmed.toUpperCase())) {
+                return { continent: trimmed.toUpperCase() };
+              }
+              return { country: trimmed.toUpperCase() };
+            }
+            return { magic: trimmed };
+          }) : [{ magic: "world" }];
+          const bodyPayload = {
+            type: gpType,
+            target: targetHost,
+            locations,
+            limit: 1
+          };
+          if (gpType === "http") {
+            bodyPayload.request = {
+              method: method.toUpperCase(),
+              path
+            };
+          }
+          const createRes = await fetch("https://api.globalping.io/v1/measurements", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(bodyPayload)
+          });
+          if (!createRes.ok) {
+            const errorText = await createRes.text();
+            return {
+              statusCode: createRes.status,
+              responseTime: 0,
+              isHealthy: false,
+              region: regions?.join(",") || "Globalping",
+              error: `Globalping API error: ${createRes.status} ${errorText.substring(0, 100)}`
+            };
+          }
+          const { id } = await createRes.json();
+          if (!id) {
+            return {
+              statusCode: 0,
+              responseTime: 0,
+              isHealthy: false,
+              region: "Globalping",
+              error: "No measurement ID returned from Globalping"
+            };
+          }
+          const startTime = Date.now();
+          while (Date.now() - startTime < timeoutMs) {
+            await new Promise((r) => setTimeout(r, 500));
+            const pollRes = await fetch(`https://api.globalping.io/v1/measurements/${id}`);
+            if (!pollRes.ok)
+              continue;
+            const data = await pollRes.json();
+            if (data.status === "finished" || data.results && data.results.length > 0 && data.results[0].result?.status === "finished") {
+              const firstResult = data.results[0];
+              if (!firstResult)
+                break;
+              const resData = firstResult.result || {};
+              const probeData = firstResult.probe || {};
+              const probeLocation = [probeData.city, probeData.country || probeData.continent].filter(Boolean).join(", ") || "Globalping";
+              if (gpType === "ping") {
+                const stats = resData.stats || {};
+                const packetsLoss = stats.loss !== void 0 ? stats.loss : resData.packets?.loss ?? 100;
+                const isHealthy = packetsLoss < 100;
+                const responseTime = Math.round(stats.avg || stats.min || resData.responseTime || 0);
+                return {
+                  statusCode: isHealthy ? 200 : 0,
+                  responseTime,
+                  isHealthy,
+                  region: probeLocation,
+                  error: isHealthy ? void 0 : `ICMP Ping failed (${packetsLoss}% packet loss)`
+                };
+              } else {
+                const statusCode = resData.statusCode || 0;
+                const responseTime = resData.timings?.total || resData.responseTime || 0;
+                const isHealthy = statusCode === expectedStatus;
+                const errorMsg = resData.error || (isHealthy ? void 0 : `Expected status ${expectedStatus}, got ${statusCode}`);
+                return {
+                  statusCode,
+                  responseTime,
+                  isHealthy,
+                  region: probeLocation,
+                  error: errorMsg
+                };
+              }
+            }
+          }
+          return {
+            statusCode: 0,
+            responseTime: Date.now() - startTime,
+            isHealthy: false,
+            region: "Globalping",
+            error: "Globalping measurement timed out"
+          };
+        } catch (err) {
+          return {
+            statusCode: 0,
+            responseTime: 0,
+            isHealthy: false,
+            region: "Globalping",
+            error: err instanceof Error ? err.message : "Unknown Globalping error"
+          };
+        }
+      }
+    };
+    __name(GlobalpingClient, "GlobalpingClient");
+  }
+});
+
+// src/modules/settings/repository.ts
+var repository_exports2 = {};
+__export(repository_exports2, {
   DEFAULT_SETTINGS: () => DEFAULT_SETTINGS,
   SettingsRepository: () => SettingsRepository
 });
 var DEFAULT_SETTINGS, SettingsRepository;
-var init_repository = __esm({
+var init_repository2 = __esm({
   "src/modules/settings/repository.ts"() {
     "use strict";
     init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
@@ -11974,6 +12410,612 @@ var init_repository = __esm({
       }
     };
     __name(SettingsRepository, "SettingsRepository");
+  }
+});
+
+// src/modules/notifications/repository.ts
+var repository_exports3 = {};
+__export(repository_exports3, {
+  NotificationRepository: () => NotificationRepository
+});
+var NotificationRepository;
+var init_repository3 = __esm({
+  "src/modules/notifications/repository.ts"() {
+    "use strict";
+    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+    init_performance2();
+    init_drizzle_orm();
+    init_schema();
+    NotificationRepository = class {
+      constructor(db) {
+        this.db = db;
+      }
+      async createNotification(type, config2) {
+        const notification = {
+          id: crypto.randomUUID(),
+          type,
+          enabled: true,
+          config: JSON.stringify(config2),
+          createdAt: /* @__PURE__ */ new Date()
+        };
+        await this.db.insert(notifications).values(notification);
+        return {
+          ...notification,
+          config: config2
+        };
+      }
+      async getAllNotifications() {
+        const results = await this.db.select().from(notifications);
+        return results.map((n) => ({
+          ...n,
+          config: JSON.parse(n.config)
+        }));
+      }
+      async getNotifications() {
+        return this.getAllNotifications();
+      }
+      async getNotificationById(id) {
+        const result = await this.db.select().from(notifications).where(eq(notifications.id, id)).get();
+        if (!result)
+          return null;
+        return {
+          ...result,
+          config: JSON.parse(result.config)
+        };
+      }
+      async updateNotification(id, data) {
+        const updateData = {};
+        if (data.enabled !== void 0) {
+          updateData.enabled = data.enabled;
+        }
+        if (data.config) {
+          updateData.config = JSON.stringify(data.config);
+        }
+        await this.db.update(notifications).set(updateData).where(eq(notifications.id, id));
+      }
+      async deleteNotification(id) {
+        await this.db.delete(notifications).where(eq(notifications.id, id));
+      }
+      async getEnabledNotifications() {
+        const results = await this.db.select().from(notifications).where(eq(notifications.enabled, true));
+        return results.map((n) => ({
+          ...n,
+          config: JSON.parse(n.config)
+        }));
+      }
+    };
+    __name(NotificationRepository, "NotificationRepository");
+  }
+});
+
+// src/modules/notifications/providers/telegram.ts
+var TelegramProvider;
+var init_telegram = __esm({
+  "src/modules/notifications/providers/telegram.ts"() {
+    "use strict";
+    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+    init_performance2();
+    TelegramProvider = class {
+      static async sendMessage(botToken, chatId, message, baseUrl, serviceId, serviceUrl) {
+        const keyboard = { inline_keyboard: [] };
+        if (baseUrl && serviceId) {
+          keyboard.inline_keyboard.push([{ text: "\u{1F4CA} View Details", url: `${baseUrl}/monitoring/${serviceId}` }]);
+        }
+        if (baseUrl && serviceUrl) {
+          keyboard.inline_keyboard.push([
+            { text: "\u{1F310} Open URL", url: serviceUrl },
+            { text: "\u{1F4C8} Status Page", url: baseUrl }
+          ]);
+        }
+        const payload = {
+          chat_id: chatId,
+          text: message,
+          parse_mode: "Markdown",
+          disable_web_page_preview: true
+        };
+        if (keyboard.inline_keyboard.length > 0) {
+          payload.reply_markup = keyboard;
+        }
+        const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Telegram API error: ${response.status} - ${errorText}`);
+        }
+      }
+      static async sendDocument(botToken, chatId, documentContent, filename = "monitorflare-backup.json", caption = "\u{1F4E6} MonitorFlare System Backup") {
+        const formData = new FormData();
+        formData.append("chat_id", chatId);
+        formData.append("caption", caption);
+        const file2 = new File([documentContent], filename, { type: "application/json" });
+        formData.append("document", file2);
+        const response = await fetch(`https://api.telegram.org/bot${botToken}/sendDocument`, {
+          method: "POST",
+          body: formData
+        });
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Telegram sendDocument error: ${response.status} - ${errorText}`);
+        }
+      }
+    };
+    __name(TelegramProvider, "TelegramProvider");
+  }
+});
+
+// src/modules/notifications/providers/slack.ts
+var SlackProvider;
+var init_slack = __esm({
+  "src/modules/notifications/providers/slack.ts"() {
+    "use strict";
+    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+    init_performance2();
+    SlackProvider = class {
+      static async send(config2, service, incident, baseUrl) {
+        const statusColor = incident.statusCode === 0 ? "#DC2626" : "#F59E0B";
+        const statusEmoji = incident.statusCode === 0 ? ":x:" : ":warning:";
+        const response = await fetch(config2.webhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            attachments: [
+              {
+                color: statusColor,
+                blocks: [
+                  {
+                    type: "header",
+                    text: {
+                      type: "plain_text",
+                      text: `${statusEmoji} Service Down Alert`,
+                      emoji: true
+                    }
+                  },
+                  {
+                    type: "section",
+                    fields: [
+                      { type: "mrkdwn", text: `*Service:*
+${service.name}` },
+                      {
+                        type: "mrkdwn",
+                        text: `*Status:*
+${incident.statusCode || "Connection Failed"}`
+                      },
+                      { type: "mrkdwn", text: `*Method:*
+${service.method}` },
+                      {
+                        type: "mrkdwn",
+                        text: `*Response Time:*
+${incident.responseTime}ms`
+                      },
+                      {
+                        type: "mrkdwn",
+                        text: `*Expected:*
+${service.expectedStatus}`
+                      },
+                      {
+                        type: "mrkdwn",
+                        text: `*Time:*
+${(/* @__PURE__ */ new Date()).toLocaleString()}`
+                      }
+                    ]
+                  },
+                  {
+                    type: "section",
+                    text: { type: "mrkdwn", text: `*URL:*
+\`${service.url}\`` }
+                  },
+                  {
+                    type: "section",
+                    text: {
+                      type: "mrkdwn",
+                      text: `*Error:*
+\`\`\`${incident.error || "Unexpected status code"}\`\`\``
+                    }
+                  },
+                  { type: "divider" },
+                  {
+                    type: "actions",
+                    elements: [
+                      {
+                        type: "button",
+                        text: { type: "plain_text", text: "\u{1F4CA} View Details", emoji: true },
+                        style: "primary",
+                        url: `${baseUrl}/monitoring/${service.id}`
+                      },
+                      {
+                        type: "button",
+                        text: { type: "plain_text", text: "\u{1F310} Open URL", emoji: true },
+                        url: service.url
+                      },
+                      {
+                        type: "button",
+                        text: { type: "plain_text", text: "\u{1F4C8} Status Page", emoji: true },
+                        url: baseUrl
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          })
+        });
+        if (!response.ok) {
+          throw new Error(`Slack API error: ${response.status}`);
+        }
+      }
+    };
+    __name(SlackProvider, "SlackProvider");
+  }
+});
+
+// src/modules/notifications/providers/discord.ts
+var DiscordProvider;
+var init_discord = __esm({
+  "src/modules/notifications/providers/discord.ts"() {
+    "use strict";
+    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+    init_performance2();
+    DiscordProvider = class {
+      static async send(webhookUrl, alertType, service, details) {
+        const isDown = alertType === "down";
+        const title2 = isDown ? `\u{1F6A8} ${service.name} is DOWN` : `\u2705 ${service.name} has RECOVERED`;
+        const color = isDown ? 15548997 : 2067276;
+        const embed = {
+          title: title2,
+          color,
+          fields: [
+            { name: "Service", value: service.name, inline: true },
+            { name: "Status Code", value: String(details.statusCode || "N/A"), inline: true },
+            { name: "Response Time", value: `${details.responseTime}ms`, inline: true },
+            { name: "Check Type", value: service.checkType.toUpperCase(), inline: true },
+            { name: "Region", value: details.region || "Direct", inline: true }
+          ],
+          timestamp: (/* @__PURE__ */ new Date()).toISOString()
+        };
+        if (details.error) {
+          embed.fields.push({ name: "Error", value: details.error, inline: false });
+        }
+        await fetch(webhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ embeds: [embed] })
+        });
+      }
+    };
+    __name(DiscordProvider, "DiscordProvider");
+  }
+});
+
+// src/modules/notifications/providers/webhook.ts
+var CustomWebhookProvider;
+var init_webhook = __esm({
+  "src/modules/notifications/providers/webhook.ts"() {
+    "use strict";
+    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+    init_performance2();
+    CustomWebhookProvider = class {
+      static async send(webhookUrl, secretHeader, alertType, service, details) {
+        const headers = {
+          "Content-Type": "application/json",
+          "User-Agent": "MonitorFlare/3.0 Webhook Alert"
+        };
+        if (secretHeader && secretHeader.trim()) {
+          headers["X-MonitorFlare-Secret"] = secretHeader.trim();
+        }
+        const payload = {
+          event: alertType === "down" ? "service.down" : "service.recovered",
+          timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+          service: {
+            id: service.id,
+            name: service.name,
+            url: service.showUrl ? service.url : null,
+            method: service.method,
+            checkType: service.checkType
+          },
+          checkResult: {
+            status: alertType === "down" ? "unhealthy" : "healthy",
+            responseTime: details.responseTime,
+            statusCode: details.statusCode || null,
+            error: details.error || null,
+            region: details.region || "Direct"
+          }
+        };
+        await fetch(webhookUrl, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(payload)
+        });
+      }
+    };
+    __name(CustomWebhookProvider, "CustomWebhookProvider");
+  }
+});
+
+// src/modules/notifications/service.ts
+var service_exports = {};
+__export(service_exports, {
+  NotificationService: () => NotificationService
+});
+var NotificationService;
+var init_service = __esm({
+  "src/modules/notifications/service.ts"() {
+    "use strict";
+    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+    init_performance2();
+    init_telegram();
+    init_slack();
+    init_discord();
+    init_webhook();
+    NotificationService = class {
+      constructor(repository, env4, settings2) {
+        this.repository = repository;
+        this.env = env4;
+        this.settings = settings2;
+      }
+      compileTemplate(template, data) {
+        let result = template;
+        for (const [key, val] of Object.entries(data)) {
+          const regex2 = new RegExp(`{{\\s*${key}\\s*}}`, "g");
+          result = result.replace(regex2, String(val ?? ""));
+        }
+        return result;
+      }
+      async sendAlert(alertType, service, details, template, baseUrl) {
+        try {
+          const timeStr = (/* @__PURE__ */ new Date()).toLocaleString("en-US", {
+            timeZone: "Asia/Tehran",
+            dateStyle: "medium",
+            timeStyle: "medium"
+          });
+          const messageText = this.compileTemplate(template, {
+            service_name: service.name,
+            service_url: service.showUrl ? service.url : "Hidden",
+            time: timeStr,
+            status_code: details.statusCode || (alertType === "down" ? "Failed" : 200),
+            error: details.error || "N/A",
+            response_time: details.responseTime,
+            check_type: service.checkType.toUpperCase(),
+            region: details.region || "Direct"
+          });
+          const dbNotifications = await this.repository.getEnabledNotifications();
+          let sentCount = 0;
+          for (const notif of dbNotifications) {
+            try {
+              if (notif.type === "telegram" && notif.config?.botToken && notif.config?.chatId) {
+                await TelegramProvider.sendMessage(
+                  notif.config.botToken,
+                  notif.config.chatId,
+                  messageText,
+                  baseUrl,
+                  service.id,
+                  service.showUrl ? service.url : void 0
+                );
+                sentCount++;
+              } else if (notif.type === "slack" && notif.config?.webhookUrl) {
+                await SlackProvider.send(
+                  notif.config,
+                  service,
+                  { responseTime: details.responseTime, statusCode: details.statusCode || 0, error: details.error },
+                  baseUrl
+                );
+                sentCount++;
+              } else if (notif.type === "discord" && notif.config?.webhookUrl) {
+                await DiscordProvider.send(
+                  notif.config.webhookUrl,
+                  alertType,
+                  service,
+                  details
+                );
+                sentCount++;
+              } else if (notif.type === "webhook" && notif.config?.webhookUrl) {
+                await CustomWebhookProvider.send(
+                  notif.config.webhookUrl,
+                  notif.config.secretHeader,
+                  alertType,
+                  service,
+                  details
+                );
+                sentCount++;
+              }
+            } catch (err) {
+              console.error(`[NOTIFICATION] Failed to send to ${notif.type} integration:`, err);
+            }
+          }
+          const botToken = this.env?.TELEGRAM_BOT_TOKEN;
+          const chatId = this.env?.TELEGRAM_CHAT_ID;
+          if (botToken && chatId && sentCount === 0) {
+            try {
+              await TelegramProvider.sendMessage(
+                botToken,
+                chatId,
+                messageText,
+                baseUrl,
+                service.id,
+                service.showUrl ? service.url : void 0
+              );
+              console.log("[NOTIFICATION] Sent alert via environment TELEGRAM_BOT_TOKEN & TELEGRAM_CHAT_ID");
+            } catch (err) {
+              console.error("[NOTIFICATION] Failed to send alert via env telegram secrets:", err);
+            }
+          }
+        } catch (error3) {
+          console.error("[NOTIFICATION] Error in sendAlert:", error3);
+        }
+      }
+      async sendBackupToTelegram(backupJson, filename = "monitorflare-backup.json") {
+        const dbNotifications = await this.repository.getEnabledNotifications();
+        let botToken = this.settings?.autoBackupBotToken || this.env?.TELEGRAM_BOT_TOKEN;
+        let backupChatId = this.settings?.autoBackupChatId || this.env?.TELEGRAM_BACKUP_CHAT_ID || this.env?.TELEGRAM_CHAT_ID;
+        for (const notif of dbNotifications) {
+          if (notif.type === "telegram" && notif.config?.botToken) {
+            if (!botToken)
+              botToken = notif.config.botToken;
+            if (!backupChatId) {
+              backupChatId = notif.config.backupChatId || notif.config.chatId;
+            }
+          }
+        }
+        if (!botToken || !backupChatId) {
+          console.warn("[BACKUP] Cannot send Telegram backup: Dedicated/Fallback Bot token or Chat ID missing.");
+          return false;
+        }
+        try {
+          await TelegramProvider.sendDocument(botToken, backupChatId, backupJson, filename);
+          console.log(`[BACKUP] Successfully sent backup file to Telegram chat ID: ${backupChatId}`);
+          return true;
+        } catch (err) {
+          console.error("[BACKUP] Failed to send Telegram backup document:", err);
+          return false;
+        }
+      }
+    };
+    __name(NotificationService, "NotificationService");
+  }
+});
+
+// src/modules/health/checker.ts
+var checker_exports = {};
+__export(checker_exports, {
+  HealthChecker: () => HealthChecker
+});
+var HealthChecker;
+var init_checker = __esm({
+  "src/modules/health/checker.ts"() {
+    "use strict";
+    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
+    init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
+    init_performance2();
+    init_globalping();
+    HealthChecker = class {
+      constructor(healthRepository, monitoringRepository, notificationService, settings2) {
+        this.healthRepository = healthRepository;
+        this.monitoringRepository = monitoringRepository;
+        this.notificationService = notificationService;
+        this.settings = settings2;
+      }
+      async checkService(service, baseUrl) {
+        let isHealthy = false;
+        let responseTime = 0;
+        let statusCode;
+        let errorMsg;
+        let region = "Direct";
+        if (service.checkType === "heartbeat") {
+          const intervalSec = service.heartbeatInterval || 300;
+          const lastCheckTime = service.lastCheckedAt ? new Date(service.lastCheckedAt).getTime() : 0;
+          const elapsedSec = Math.floor((Date.now() - lastCheckTime) / 1e3);
+          isHealthy = lastCheckTime > 0 && elapsedSec <= intervalSec;
+          responseTime = 0;
+          region = "Heartbeat";
+          if (!isHealthy) {
+            errorMsg = lastCheckTime === 0 ? "Heartbeat ping never received" : `Heartbeat overdue by ${elapsedSec - intervalSec}s (Expected every ${intervalSec}s)`;
+          }
+        } else if (service.checkType === "globalping") {
+          const gpResult = await GlobalpingClient.runCheck(
+            service.url,
+            service.method,
+            service.expectedStatus,
+            service.checkRegions || [],
+            service.timeout,
+            service.globalpingType || "http"
+          );
+          isHealthy = gpResult.isHealthy;
+          responseTime = gpResult.responseTime;
+          statusCode = gpResult.statusCode || void 0;
+          errorMsg = gpResult.error;
+          region = gpResult.region;
+        } else {
+          const startTime = Date.now();
+          try {
+            const fetchHeaders = {
+              "User-Agent": "MonitorFlare/3.0 Status Checker"
+            };
+            if (service.headers) {
+              if (typeof service.headers === "object") {
+                Object.assign(fetchHeaders, service.headers);
+              } else if (typeof service.headers === "string") {
+                try {
+                  Object.assign(fetchHeaders, JSON.parse(service.headers));
+                } catch {
+                }
+              }
+            }
+            const response = await fetch(service.url, {
+              method: service.method,
+              headers: fetchHeaders,
+              signal: AbortSignal.timeout(service.timeout)
+            });
+            responseTime = Date.now() - startTime;
+            statusCode = response.status;
+            isHealthy = response.status === service.expectedStatus;
+            if (!isHealthy) {
+              errorMsg = `Expected status ${service.expectedStatus}, got ${response.status}`;
+            } else if (service.keyword && service.keyword.trim()) {
+              const bodyText = await response.text();
+              if (!bodyText.includes(service.keyword.trim())) {
+                isHealthy = false;
+                errorMsg = `Keyword "${service.keyword}" not found in response body`;
+              }
+            }
+          } catch (error3) {
+            responseTime = Date.now() - startTime;
+            errorMsg = error3 instanceof Error ? error3.message : "Connection failed";
+            isHealthy = false;
+          }
+        }
+        const maxRetries = service.maxRetries || 1;
+        let consecutiveFails = service.consecutiveFails || 0;
+        if (isHealthy) {
+          consecutiveFails = 0;
+        } else {
+          consecutiveFails += 1;
+        }
+        const isEffectivelyUnhealthy = !isHealthy && consecutiveFails >= maxRetries;
+        const currentStatus = isEffectivelyUnhealthy ? "unhealthy" : "healthy";
+        await this.healthRepository.createHealthCheck(
+          service.id,
+          isHealthy ? "healthy" : "unhealthy",
+          responseTime,
+          statusCode,
+          errorMsg,
+          region
+        );
+        await this.monitoringRepository.updateService(service.id, {
+          lastCheckedAt: service.checkType === "heartbeat" && service.lastCheckedAt ? service.lastCheckedAt : /* @__PURE__ */ new Date(),
+          lastStatus: currentStatus,
+          consecutiveFails
+        });
+        const previousStatus = service.lastStatus;
+        if (currentStatus === "unhealthy" && previousStatus !== "unhealthy") {
+          console.log(`[ALERT DOWN] ${service.name} is DOWN after ${consecutiveFails} consecutive failed check(s)!`);
+          await this.notificationService.sendAlert(
+            "down",
+            service,
+            { responseTime, statusCode, error: errorMsg || `Failed ${consecutiveFails} consecutive times`, region },
+            this.settings.downTemplate,
+            baseUrl
+          );
+        } else if (isHealthy && previousStatus === "unhealthy") {
+          console.log(`[ALERT RECOVERY] ${service.name} has RECOVERED immediately!`);
+          await this.notificationService.sendAlert(
+            "recovery",
+            service,
+            { responseTime, statusCode, region },
+            this.settings.recoveryTemplate,
+            baseUrl
+          );
+        }
+      }
+    };
+    __name(HealthChecker, "HealthChecker");
   }
 });
 
@@ -30664,251 +31706,8 @@ var MonitoringService = class {
 };
 __name(MonitoringService, "MonitoringService");
 
-// src/modules/monitoring/repository.ts
-init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-init_performance2();
-
-// node_modules/drizzle-orm/logger.js
-init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-init_performance2();
-init_entity();
-var _a34;
-var ConsoleLogWriter = class {
-  write(message) {
-    console.log(message);
-  }
-};
-__name(ConsoleLogWriter, "ConsoleLogWriter");
-_a34 = entityKind;
-__publicField(ConsoleLogWriter, _a34, "ConsoleLogWriter");
-var _a35;
-var DefaultLogger = class {
-  writer;
-  constructor(config2) {
-    this.writer = config2?.writer ?? new ConsoleLogWriter();
-  }
-  logQuery(query, params) {
-    const stringifiedParams = params.map((p) => {
-      try {
-        return JSON.stringify(p);
-      } catch {
-        return String(p);
-      }
-    });
-    const paramsStr = stringifiedParams.length ? ` -- params: [${stringifiedParams.join(", ")}]` : "";
-    this.writer.write(`Query: ${query}${paramsStr}`);
-  }
-};
-__name(DefaultLogger, "DefaultLogger");
-_a35 = entityKind;
-__publicField(DefaultLogger, _a35, "DefaultLogger");
-var _a36;
-var NoopLogger = class {
-  logQuery() {
-  }
-};
-__name(NoopLogger, "NoopLogger");
-_a36 = entityKind;
-__publicField(NoopLogger, _a36, "NoopLogger");
-
-// src/modules/monitoring/repository.ts
-init_schema();
-
-// src/shared/config.ts
-init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-init_performance2();
-var CONFIG = {
-  DEFAULT_METHOD: "GET",
-  DEFAULT_TIMEOUT: 1e4,
-  DEFAULT_EXPECTED_STATUS: 200,
-  HEALTH_CHECK_LIMIT: 1440,
-  UPTIME_CALCULATION_LIMIT: 100
-};
-
-// src/modules/monitoring/repository.ts
-var MonitoringRepository = class {
-  constructor(db) {
-    this.db = db;
-  }
-  mapRowToService(row) {
-    let checkRegions = null;
-    if (row.checkRegions || row.check_regions) {
-      const raw = row.checkRegions || row.check_regions;
-      try {
-        checkRegions = typeof raw === "string" ? JSON.parse(raw) : raw;
-      } catch {
-        checkRegions = String(raw).split(",").map((s) => s.trim()).filter(Boolean);
-      }
-    }
-    let parsedHeaders = null;
-    const rawHeaders = row.headers;
-    if (rawHeaders) {
-      if (typeof rawHeaders === "object") {
-        parsedHeaders = rawHeaders;
-      } else if (typeof rawHeaders === "string" && rawHeaders.trim()) {
-        try {
-          parsedHeaders = JSON.parse(rawHeaders);
-        } catch {
-          parsedHeaders = null;
-        }
-      }
-    }
-    const isShowUrl = row.showUrl !== void 0 ? Boolean(row.showUrl) : row.show_url !== void 0 ? Boolean(row.show_url) : true;
-    const isSslCheck = row.sslCheck !== void 0 ? Boolean(row.sslCheck) : row.ssl_check !== void 0 ? Boolean(row.ssl_check) : false;
-    return {
-      id: row.id,
-      name: row.name,
-      url: row.url,
-      method: row.method || CONFIG.DEFAULT_METHOD,
-      timeout: row.timeout || CONFIG.DEFAULT_TIMEOUT,
-      expectedStatus: row.expectedStatus || CONFIG.DEFAULT_EXPECTED_STATUS,
-      checkType: row.checkType || row.check_type || "direct",
-      globalpingType: row.globalpingType || row.globalping_type || "http",
-      checkRegions,
-      showUrl: isShowUrl,
-      headers: parsedHeaders,
-      keyword: row.keyword || row.keyword === "" ? row.keyword : null,
-      groupName: row.groupName || row.group_name || null,
-      sslCheck: isSslCheck,
-      heartbeatToken: row.heartbeatToken || row.heartbeat_token || null,
-      heartbeatInterval: row.heartbeatInterval || row.heartbeat_interval || null,
-      maxRetries: row.maxRetries || row.max_retries || 1,
-      consecutiveFails: row.consecutiveFails || row.consecutive_fails || 0,
-      lastCheckedAt: row.lastCheckedAt || row.last_checked_at ? new Date(row.lastCheckedAt || row.last_checked_at) : null,
-      lastStatus: row.lastStatus || row.last_status || null,
-      createdAt: new Date(row.createdAt || row.created_at)
-    };
-  }
-  async createService(data) {
-    let regionsJson = null;
-    if (Array.isArray(data.checkRegions)) {
-      regionsJson = JSON.stringify(data.checkRegions);
-    } else if (typeof data.checkRegions === "string" && data.checkRegions.trim()) {
-      regionsJson = JSON.stringify(data.checkRegions.split(",").map((s) => s.trim()).filter(Boolean));
-    }
-    let headersJson = null;
-    if (data.headers) {
-      if (typeof data.headers === "object") {
-        headersJson = JSON.stringify(data.headers);
-      } else if (typeof data.headers === "string" && data.headers.trim()) {
-        headersJson = data.headers.trim();
-      }
-    }
-    const expNum = Number(data.expectedStatus);
-    const expectedStatus = !isNaN(expNum) && expNum > 0 ? expNum : CONFIG.DEFAULT_EXPECTED_STATUS;
-    const timeoutNum = Number(data.timeout);
-    const timeout = !isNaN(timeoutNum) && timeoutNum > 0 ? timeoutNum : CONFIG.DEFAULT_TIMEOUT;
-    const maxRetriesNum = Number(data.maxRetries);
-    const maxRetries = !isNaN(maxRetriesNum) && maxRetriesNum > 0 ? maxRetriesNum : 1;
-    const serviceRow = {
-      id: crypto.randomUUID(),
-      name: data.name,
-      url: data.url,
-      method: data.method || CONFIG.DEFAULT_METHOD,
-      timeout,
-      expectedStatus,
-      checkType: data.checkType || "direct",
-      globalpingType: data.globalpingType || "http",
-      checkRegions: regionsJson,
-      showUrl: data.showUrl !== void 0 ? Boolean(data.showUrl) : true,
-      headers: headersJson,
-      keyword: data.keyword || null,
-      groupName: data.groupName || null,
-      sslCheck: data.sslCheck !== void 0 ? Boolean(data.sslCheck) : false,
-      heartbeatToken: data.checkType === "heartbeat" ? data.heartbeatToken || crypto.randomUUID().slice(0, 16) : null,
-      heartbeatInterval: data.heartbeatInterval ? Number(data.heartbeatInterval) : null,
-      maxRetries,
-      consecutiveFails: 0,
-      createdAt: /* @__PURE__ */ new Date()
-    };
-    await this.db.insert(services).values(serviceRow);
-    return this.mapRowToService(serviceRow);
-  }
-  async getServiceById(id) {
-    const result = await this.db.select().from(services).where(eq(services.id, id)).get();
-    return result ? this.mapRowToService(result) : null;
-  }
-  async getServiceByHeartbeatToken(token) {
-    const result = await this.db.select().from(services).where(eq(services.heartbeatToken, token)).get();
-    return result ? this.mapRowToService(result) : null;
-  }
-  async getAllServices() {
-    const rows = await this.db.select().from(services);
-    return rows.map((r) => this.mapRowToService(r));
-  }
-  async updateService(id, data) {
-    const updateData = {};
-    if (data.name !== void 0)
-      updateData.name = data.name;
-    if (data.url !== void 0)
-      updateData.url = data.url;
-    if (data.method !== void 0)
-      updateData.method = data.method;
-    if (data.timeout !== void 0) {
-      const t2 = Number(data.timeout);
-      updateData.timeout = !isNaN(t2) && t2 > 0 ? t2 : CONFIG.DEFAULT_TIMEOUT;
-    }
-    if (data.expectedStatus !== void 0) {
-      const exp = Number(data.expectedStatus);
-      updateData.expectedStatus = !isNaN(exp) && exp > 0 ? exp : CONFIG.DEFAULT_EXPECTED_STATUS;
-    }
-    if (data.maxRetries !== void 0) {
-      const mr = Number(data.maxRetries);
-      updateData.maxRetries = !isNaN(mr) && mr > 0 ? mr : 1;
-    }
-    if (data.consecutiveFails !== void 0) {
-      updateData.consecutiveFails = Number(data.consecutiveFails) || 0;
-    }
-    if (data.checkType !== void 0)
-      updateData.checkType = data.checkType;
-    if (data.globalpingType !== void 0)
-      updateData.globalpingType = data.globalpingType;
-    if (data.showUrl !== void 0)
-      updateData.showUrl = Boolean(data.showUrl);
-    if (data.keyword !== void 0)
-      updateData.keyword = data.keyword || null;
-    if (data.groupName !== void 0)
-      updateData.groupName = data.groupName || null;
-    if (data.sslCheck !== void 0)
-      updateData.sslCheck = Boolean(data.sslCheck);
-    if (data.heartbeatToken !== void 0)
-      updateData.heartbeatToken = data.heartbeatToken;
-    if (data.heartbeatInterval !== void 0)
-      updateData.heartbeatInterval = data.heartbeatInterval ? Number(data.heartbeatInterval) : null;
-    if (data.lastCheckedAt !== void 0)
-      updateData.lastCheckedAt = data.lastCheckedAt;
-    if (data.lastStatus !== void 0)
-      updateData.lastStatus = data.lastStatus;
-    if (data.headers !== void 0) {
-      if (typeof data.headers === "object") {
-        updateData.headers = JSON.stringify(data.headers);
-      } else if (typeof data.headers === "string") {
-        updateData.headers = data.headers.trim() || null;
-      } else {
-        updateData.headers = null;
-      }
-    }
-    if (data.checkRegions !== void 0) {
-      if (Array.isArray(data.checkRegions)) {
-        updateData.checkRegions = JSON.stringify(data.checkRegions);
-      } else if (typeof data.checkRegions === "string") {
-        updateData.checkRegions = JSON.stringify(data.checkRegions.split(",").map((s) => s.trim()).filter(Boolean));
-      } else {
-        updateData.checkRegions = null;
-      }
-    }
-    if (Object.keys(updateData).length > 0) {
-      await this.db.update(services).set(updateData).where(eq(services.id, id));
-    }
-  }
-  async deleteService(id) {
-    await this.db.delete(services).where(eq(services.id, id));
-  }
-};
-__name(MonitoringRepository, "MonitoringRepository");
+// src/modules/monitoring/index.ts
+init_repository();
 
 // src/modules/monitoring/routes.ts
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
@@ -30930,6 +31729,7 @@ init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
 init_performance2();
 init_entity();
+init_logger();
 init_relations();
 init_db();
 init_dialect();
@@ -30939,6 +31739,7 @@ init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
 init_performance2();
 init_entity();
+init_logger();
 init_sql();
 init_sqlite_core();
 init_session();
@@ -31168,11 +31969,16 @@ __name(createDatabase, "createDatabase");
 // src/shared/database/index.ts
 init_schema();
 
+// src/modules/monitoring/routes.ts
+init_repository();
+
 // src/modules/health/repository.ts
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
 init_performance2();
+init_drizzle_orm();
 init_schema();
+init_config();
 var HealthRepository = class {
   constructor(db) {
     this.db = db;
@@ -31361,130 +32167,8 @@ var AuthService = class {
 };
 __name(AuthService, "AuthService");
 
-// src/modules/health/globalping.ts
-init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-init_performance2();
-var GlobalpingClient = class {
-  static async runCheck(targetUrlOrHost, method = "GET", expectedStatus = 200, regions, timeoutMs = 1e4, gpType = "http") {
-    try {
-      let targetHost = targetUrlOrHost.trim();
-      let path = "/";
-      try {
-        if (targetHost.startsWith("http://") || targetHost.startsWith("https://")) {
-          const parsed = new URL(targetHost);
-          targetHost = parsed.hostname;
-          path = parsed.pathname + parsed.search;
-        }
-      } catch {
-      }
-      const locations = regions && regions.length > 0 ? regions.map((r) => {
-        const trimmed = r.trim();
-        if (trimmed.length === 2) {
-          if (["EU", "NA", "SA", "AS", "AF", "OC"].includes(trimmed.toUpperCase())) {
-            return { continent: trimmed.toUpperCase() };
-          }
-          return { country: trimmed.toUpperCase() };
-        }
-        return { magic: trimmed };
-      }) : [{ magic: "world" }];
-      const bodyPayload = {
-        type: gpType,
-        target: targetHost,
-        locations,
-        limit: 1
-      };
-      if (gpType === "http") {
-        bodyPayload.request = {
-          method: method.toUpperCase(),
-          path
-        };
-      }
-      const createRes = await fetch("https://api.globalping.io/v1/measurements", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(bodyPayload)
-      });
-      if (!createRes.ok) {
-        const errorText = await createRes.text();
-        return {
-          statusCode: createRes.status,
-          responseTime: 0,
-          isHealthy: false,
-          region: regions?.join(",") || "Globalping",
-          error: `Globalping API error: ${createRes.status} ${errorText.substring(0, 100)}`
-        };
-      }
-      const { id } = await createRes.json();
-      if (!id) {
-        return {
-          statusCode: 0,
-          responseTime: 0,
-          isHealthy: false,
-          region: "Globalping",
-          error: "No measurement ID returned from Globalping"
-        };
-      }
-      const startTime = Date.now();
-      while (Date.now() - startTime < timeoutMs) {
-        await new Promise((r) => setTimeout(r, 500));
-        const pollRes = await fetch(`https://api.globalping.io/v1/measurements/${id}`);
-        if (!pollRes.ok)
-          continue;
-        const data = await pollRes.json();
-        if (data.status === "finished" || data.results && data.results.length > 0 && data.results[0].result?.status === "finished") {
-          const firstResult = data.results[0];
-          if (!firstResult)
-            break;
-          const resData = firstResult.result || {};
-          const probeData = firstResult.probe || {};
-          const probeLocation = [probeData.city, probeData.country || probeData.continent].filter(Boolean).join(", ") || "Globalping";
-          if (gpType === "ping") {
-            const stats = resData.stats || {};
-            const packetsLoss = stats.loss !== void 0 ? stats.loss : resData.packets?.loss ?? 100;
-            const isHealthy = packetsLoss < 100;
-            const responseTime = Math.round(stats.avg || stats.min || resData.responseTime || 0);
-            return {
-              statusCode: isHealthy ? 200 : 0,
-              responseTime,
-              isHealthy,
-              region: probeLocation,
-              error: isHealthy ? void 0 : `ICMP Ping failed (${packetsLoss}% packet loss)`
-            };
-          } else {
-            const statusCode = resData.statusCode || 0;
-            const responseTime = resData.timings?.total || resData.responseTime || 0;
-            const isHealthy = statusCode === expectedStatus;
-            const errorMsg = resData.error || (isHealthy ? void 0 : `Expected status ${expectedStatus}, got ${statusCode}`);
-            return {
-              statusCode,
-              responseTime,
-              isHealthy,
-              region: probeLocation,
-              error: errorMsg
-            };
-          }
-        }
-      }
-      return {
-        statusCode: 0,
-        responseTime: Date.now() - startTime,
-        isHealthy: false,
-        region: "Globalping",
-        error: "Globalping measurement timed out"
-      };
-    } catch (err) {
-      return {
-        statusCode: 0,
-        responseTime: 0,
-        isHealthy: false,
-        region: "Globalping",
-        error: err instanceof Error ? err.message : "Unknown Globalping error"
-      };
-    }
-  }
-};
-__name(GlobalpingClient, "GlobalpingClient");
+// src/modules/monitoring/routes.ts
+init_globalping();
 
 // src/shared/response.ts
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
@@ -31527,7 +32211,7 @@ var monitoringRoutes = new Elysia({ prefix: "/api" }).derive(async ({ store }) =
   const healthRepository = new HealthRepository(db);
   const authService = new AuthService(env4);
   try {
-    const settingsRepo = new (await Promise.resolve().then(() => (init_repository(), repository_exports))).SettingsRepository(db);
+    const settingsRepo = new (await Promise.resolve().then(() => (init_repository2(), repository_exports2))).SettingsRepository(db);
     const settings2 = await settingsRepo.getAllSettings();
     if (settings2.adminUsername)
       authService.adminUsername = settings2.adminUsername;
@@ -31667,12 +32351,25 @@ var monitoringRoutes = new Elysia({ prefix: "/api" }).derive(async ({ store }) =
   } catch (err) {
     return ResponseHelper.error(err instanceof Error ? err.message : "Test check error", 500);
   }
-}).post("/services", async ({ headers, body, monitoringService, authService }) => {
+}).post("/services", async ({ headers, body, monitoringService, healthRepository, authService, store }) => {
   const isAdmin = await authService.verifyCookie(headers.cookie);
   if (!isAdmin)
     return ResponseHelper.error("Unauthorized", 401);
   try {
     const result = await monitoringService.createService(body);
+    try {
+      const env4 = store;
+      const db = createDatabase(env4.DB);
+      const monitoringRepo = new (await Promise.resolve().then(() => (init_repository(), repository_exports))).MonitoringRepository(db);
+      const notificationRepo = new (await Promise.resolve().then(() => (init_repository3(), repository_exports3))).NotificationRepository(db);
+      const settingsRepo = new (await Promise.resolve().then(() => (init_repository2(), repository_exports2))).SettingsRepository(db);
+      const settings2 = await settingsRepo.getAllSettings();
+      const notificationService = new (await Promise.resolve().then(() => (init_service(), service_exports))).NotificationService(notificationRepo, env4, settings2);
+      const healthChecker = new (await Promise.resolve().then(() => (init_checker(), checker_exports))).HealthChecker(healthRepository, monitoringRepo, notificationService, settings2);
+      await healthChecker.checkService(result, settings2.baseUrl || "");
+    } catch (checkErr) {
+      console.error("[Monitoring] Immediate check error:", checkErr);
+    }
     return { success: true, service: result };
   } catch (error3) {
     console.error("[Monitoring] Create error:", error3);
@@ -31763,434 +32460,18 @@ var monitoringRoutes = new Elysia({ prefix: "/api" }).derive(async ({ store }) =
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
 init_performance2();
-
-// src/modules/notifications/service.ts
-init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-init_performance2();
-
-// src/modules/notifications/providers/telegram.ts
-init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-init_performance2();
-var TelegramProvider = class {
-  static async sendMessage(botToken, chatId, message, baseUrl, serviceId, serviceUrl) {
-    const keyboard = { inline_keyboard: [] };
-    if (baseUrl && serviceId) {
-      keyboard.inline_keyboard.push([{ text: "\u{1F4CA} View Details", url: `${baseUrl}/monitoring/${serviceId}` }]);
-    }
-    if (baseUrl && serviceUrl) {
-      keyboard.inline_keyboard.push([
-        { text: "\u{1F310} Open URL", url: serviceUrl },
-        { text: "\u{1F4C8} Status Page", url: baseUrl }
-      ]);
-    }
-    const payload = {
-      chat_id: chatId,
-      text: message,
-      parse_mode: "Markdown",
-      disable_web_page_preview: true
-    };
-    if (keyboard.inline_keyboard.length > 0) {
-      payload.reply_markup = keyboard;
-    }
-    const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Telegram API error: ${response.status} - ${errorText}`);
-    }
-  }
-  static async sendDocument(botToken, chatId, documentContent, filename = "monitorflare-backup.json", caption = "\u{1F4E6} MonitorFlare System Backup") {
-    const formData = new FormData();
-    formData.append("chat_id", chatId);
-    formData.append("caption", caption);
-    const file2 = new File([documentContent], filename, { type: "application/json" });
-    formData.append("document", file2);
-    const response = await fetch(`https://api.telegram.org/bot${botToken}/sendDocument`, {
-      method: "POST",
-      body: formData
-    });
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Telegram sendDocument error: ${response.status} - ${errorText}`);
-    }
-  }
-};
-__name(TelegramProvider, "TelegramProvider");
-
-// src/modules/notifications/providers/slack.ts
-init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-init_performance2();
-var SlackProvider = class {
-  static async send(config2, service, incident, baseUrl) {
-    const statusColor = incident.statusCode === 0 ? "#DC2626" : "#F59E0B";
-    const statusEmoji = incident.statusCode === 0 ? ":x:" : ":warning:";
-    const response = await fetch(config2.webhookUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        attachments: [
-          {
-            color: statusColor,
-            blocks: [
-              {
-                type: "header",
-                text: {
-                  type: "plain_text",
-                  text: `${statusEmoji} Service Down Alert`,
-                  emoji: true
-                }
-              },
-              {
-                type: "section",
-                fields: [
-                  { type: "mrkdwn", text: `*Service:*
-${service.name}` },
-                  {
-                    type: "mrkdwn",
-                    text: `*Status:*
-${incident.statusCode || "Connection Failed"}`
-                  },
-                  { type: "mrkdwn", text: `*Method:*
-${service.method}` },
-                  {
-                    type: "mrkdwn",
-                    text: `*Response Time:*
-${incident.responseTime}ms`
-                  },
-                  {
-                    type: "mrkdwn",
-                    text: `*Expected:*
-${service.expectedStatus}`
-                  },
-                  {
-                    type: "mrkdwn",
-                    text: `*Time:*
-${(/* @__PURE__ */ new Date()).toLocaleString()}`
-                  }
-                ]
-              },
-              {
-                type: "section",
-                text: { type: "mrkdwn", text: `*URL:*
-\`${service.url}\`` }
-              },
-              {
-                type: "section",
-                text: {
-                  type: "mrkdwn",
-                  text: `*Error:*
-\`\`\`${incident.error || "Unexpected status code"}\`\`\``
-                }
-              },
-              { type: "divider" },
-              {
-                type: "actions",
-                elements: [
-                  {
-                    type: "button",
-                    text: { type: "plain_text", text: "\u{1F4CA} View Details", emoji: true },
-                    style: "primary",
-                    url: `${baseUrl}/monitoring/${service.id}`
-                  },
-                  {
-                    type: "button",
-                    text: { type: "plain_text", text: "\u{1F310} Open URL", emoji: true },
-                    url: service.url
-                  },
-                  {
-                    type: "button",
-                    text: { type: "plain_text", text: "\u{1F4C8} Status Page", emoji: true },
-                    url: baseUrl
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      })
-    });
-    if (!response.ok) {
-      throw new Error(`Slack API error: ${response.status}`);
-    }
-  }
-};
-__name(SlackProvider, "SlackProvider");
-
-// src/modules/notifications/providers/discord.ts
-init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-init_performance2();
-var DiscordProvider = class {
-  static async send(webhookUrl, alertType, service, details) {
-    const isDown = alertType === "down";
-    const title2 = isDown ? `\u{1F6A8} ${service.name} is DOWN` : `\u2705 ${service.name} has RECOVERED`;
-    const color = isDown ? 15548997 : 2067276;
-    const embed = {
-      title: title2,
-      color,
-      fields: [
-        { name: "Service", value: service.name, inline: true },
-        { name: "Status Code", value: String(details.statusCode || "N/A"), inline: true },
-        { name: "Response Time", value: `${details.responseTime}ms`, inline: true },
-        { name: "Check Type", value: service.checkType.toUpperCase(), inline: true },
-        { name: "Region", value: details.region || "Direct", inline: true }
-      ],
-      timestamp: (/* @__PURE__ */ new Date()).toISOString()
-    };
-    if (details.error) {
-      embed.fields.push({ name: "Error", value: details.error, inline: false });
-    }
-    await fetch(webhookUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ embeds: [embed] })
-    });
-  }
-};
-__name(DiscordProvider, "DiscordProvider");
-
-// src/modules/notifications/providers/webhook.ts
-init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-init_performance2();
-var CustomWebhookProvider = class {
-  static async send(webhookUrl, secretHeader, alertType, service, details) {
-    const headers = {
-      "Content-Type": "application/json",
-      "User-Agent": "MonitorFlare/3.0 Webhook Alert"
-    };
-    if (secretHeader && secretHeader.trim()) {
-      headers["X-MonitorFlare-Secret"] = secretHeader.trim();
-    }
-    const payload = {
-      event: alertType === "down" ? "service.down" : "service.recovered",
-      timestamp: (/* @__PURE__ */ new Date()).toISOString(),
-      service: {
-        id: service.id,
-        name: service.name,
-        url: service.showUrl ? service.url : null,
-        method: service.method,
-        checkType: service.checkType
-      },
-      checkResult: {
-        status: alertType === "down" ? "unhealthy" : "healthy",
-        responseTime: details.responseTime,
-        statusCode: details.statusCode || null,
-        error: details.error || null,
-        region: details.region || "Direct"
-      }
-    };
-    await fetch(webhookUrl, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(payload)
-    });
-  }
-};
-__name(CustomWebhookProvider, "CustomWebhookProvider");
-
-// src/modules/notifications/service.ts
-var NotificationService = class {
-  constructor(repository, env4, settings2) {
-    this.repository = repository;
-    this.env = env4;
-    this.settings = settings2;
-  }
-  compileTemplate(template, data) {
-    let result = template;
-    for (const [key, val] of Object.entries(data)) {
-      const regex2 = new RegExp(`{{\\s*${key}\\s*}}`, "g");
-      result = result.replace(regex2, String(val ?? ""));
-    }
-    return result;
-  }
-  async sendAlert(alertType, service, details, template, baseUrl) {
-    try {
-      const timeStr = (/* @__PURE__ */ new Date()).toLocaleString("en-US", {
-        timeZone: "Asia/Tehran",
-        dateStyle: "medium",
-        timeStyle: "medium"
-      });
-      const messageText = this.compileTemplate(template, {
-        service_name: service.name,
-        service_url: service.showUrl ? service.url : "Hidden",
-        time: timeStr,
-        status_code: details.statusCode || (alertType === "down" ? "Failed" : 200),
-        error: details.error || "N/A",
-        response_time: details.responseTime,
-        check_type: service.checkType.toUpperCase(),
-        region: details.region || "Direct"
-      });
-      const dbNotifications = await this.repository.getEnabledNotifications();
-      let sentCount = 0;
-      for (const notif of dbNotifications) {
-        try {
-          if (notif.type === "telegram" && notif.config?.botToken && notif.config?.chatId) {
-            await TelegramProvider.sendMessage(
-              notif.config.botToken,
-              notif.config.chatId,
-              messageText,
-              baseUrl,
-              service.id,
-              service.showUrl ? service.url : void 0
-            );
-            sentCount++;
-          } else if (notif.type === "slack" && notif.config?.webhookUrl) {
-            await SlackProvider.send(
-              notif.config,
-              service,
-              { responseTime: details.responseTime, statusCode: details.statusCode || 0, error: details.error },
-              baseUrl
-            );
-            sentCount++;
-          } else if (notif.type === "discord" && notif.config?.webhookUrl) {
-            await DiscordProvider.send(
-              notif.config.webhookUrl,
-              alertType,
-              service,
-              details
-            );
-            sentCount++;
-          } else if (notif.type === "webhook" && notif.config?.webhookUrl) {
-            await CustomWebhookProvider.send(
-              notif.config.webhookUrl,
-              notif.config.secretHeader,
-              alertType,
-              service,
-              details
-            );
-            sentCount++;
-          }
-        } catch (err) {
-          console.error(`[NOTIFICATION] Failed to send to ${notif.type} integration:`, err);
-        }
-      }
-      const botToken = this.env?.TELEGRAM_BOT_TOKEN;
-      const chatId = this.env?.TELEGRAM_CHAT_ID;
-      if (botToken && chatId && sentCount === 0) {
-        try {
-          await TelegramProvider.sendMessage(
-            botToken,
-            chatId,
-            messageText,
-            baseUrl,
-            service.id,
-            service.showUrl ? service.url : void 0
-          );
-          console.log("[NOTIFICATION] Sent alert via environment TELEGRAM_BOT_TOKEN & TELEGRAM_CHAT_ID");
-        } catch (err) {
-          console.error("[NOTIFICATION] Failed to send alert via env telegram secrets:", err);
-        }
-      }
-    } catch (error3) {
-      console.error("[NOTIFICATION] Error in sendAlert:", error3);
-    }
-  }
-  async sendBackupToTelegram(backupJson, filename = "monitorflare-backup.json") {
-    const dbNotifications = await this.repository.getEnabledNotifications();
-    let botToken = this.settings?.autoBackupBotToken || this.env?.TELEGRAM_BOT_TOKEN;
-    let backupChatId = this.settings?.autoBackupChatId || this.env?.TELEGRAM_BACKUP_CHAT_ID || this.env?.TELEGRAM_CHAT_ID;
-    for (const notif of dbNotifications) {
-      if (notif.type === "telegram" && notif.config?.botToken) {
-        if (!botToken)
-          botToken = notif.config.botToken;
-        if (!backupChatId) {
-          backupChatId = notif.config.backupChatId || notif.config.chatId;
-        }
-      }
-    }
-    if (!botToken || !backupChatId) {
-      console.warn("[BACKUP] Cannot send Telegram backup: Dedicated/Fallback Bot token or Chat ID missing.");
-      return false;
-    }
-    try {
-      await TelegramProvider.sendDocument(botToken, backupChatId, backupJson, filename);
-      console.log(`[BACKUP] Successfully sent backup file to Telegram chat ID: ${backupChatId}`);
-      return true;
-    } catch (err) {
-      console.error("[BACKUP] Failed to send Telegram backup document:", err);
-      return false;
-    }
-  }
-};
-__name(NotificationService, "NotificationService");
-
-// src/modules/notifications/repository.ts
-init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-init_performance2();
-init_schema();
-var NotificationRepository = class {
-  constructor(db) {
-    this.db = db;
-  }
-  async createNotification(type, config2) {
-    const notification = {
-      id: crypto.randomUUID(),
-      type,
-      enabled: true,
-      config: JSON.stringify(config2),
-      createdAt: /* @__PURE__ */ new Date()
-    };
-    await this.db.insert(notifications).values(notification);
-    return {
-      ...notification,
-      config: config2
-    };
-  }
-  async getAllNotifications() {
-    const results = await this.db.select().from(notifications);
-    return results.map((n) => ({
-      ...n,
-      config: JSON.parse(n.config)
-    }));
-  }
-  async getNotifications() {
-    return this.getAllNotifications();
-  }
-  async getNotificationById(id) {
-    const result = await this.db.select().from(notifications).where(eq(notifications.id, id)).get();
-    if (!result)
-      return null;
-    return {
-      ...result,
-      config: JSON.parse(result.config)
-    };
-  }
-  async updateNotification(id, data) {
-    const updateData = {};
-    if (data.enabled !== void 0) {
-      updateData.enabled = data.enabled;
-    }
-    if (data.config) {
-      updateData.config = JSON.stringify(data.config);
-    }
-    await this.db.update(notifications).set(updateData).where(eq(notifications.id, id));
-  }
-  async deleteNotification(id) {
-    await this.db.delete(notifications).where(eq(notifications.id, id));
-  }
-  async getEnabledNotifications() {
-    const results = await this.db.select().from(notifications).where(eq(notifications.enabled, true));
-    return results.map((n) => ({
-      ...n,
-      config: JSON.parse(n.config)
-    }));
-  }
-};
-__name(NotificationRepository, "NotificationRepository");
+init_service();
+init_repository3();
 
 // src/modules/notifications/routes.ts
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
 init_performance2();
-init_repository();
+init_repository3();
+init_service();
+init_telegram();
+init_slack();
+init_repository2();
 var notificationRoutes = new Elysia({ prefix: "/api" }).derive(({ store }) => {
   const env4 = store;
   const db = createDatabase(env4.DB);
@@ -32297,6 +32578,10 @@ var notificationRoutes = new Elysia({ prefix: "/api" }).derive(({ store }) => {
   }
 });
 
+// src/modules/notifications/index.ts
+init_telegram();
+init_slack();
+
 // src/modules/auth/index.ts
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
@@ -32306,7 +32591,7 @@ init_performance2();
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
 init_performance2();
-init_repository();
+init_repository2();
 
 // src/shared/totp.ts
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
@@ -32526,12 +32811,15 @@ init_performance2();
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
 init_performance2();
+init_repository2();
 init_repository();
+init_repository3();
 
 // src/modules/incidents/repository.ts
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
 init_performance2();
+init_drizzle_orm();
 init_schema();
 var IncidentsRepository = class {
   constructor(db) {
@@ -32593,6 +32881,7 @@ var IncidentsRepository = class {
 __name(IncidentsRepository, "IncidentsRepository");
 
 // src/modules/settings/routes.ts
+init_service();
 var settingsRoutes = new Elysia({ prefix: "/api" }).derive(({ store }) => {
   const env4 = store;
   const db = createDatabase(env4.DB);
@@ -32705,6 +32994,80 @@ var settingsRoutes = new Elysia({ prefix: "/api" }).derive(({ store }) => {
     return { success: true, message: "Backup file sent to Telegram backup chat" };
   } else {
     return ResponseHelper.error("Failed to send backup file to Telegram. Check bot token and backup chat ID.", 500);
+  }
+}).post("/admin/system-update", async ({ headers, settingsRepo, authService, env: env4 }) => {
+  const isAdmin = await authService.verifyCookie(headers.cookie);
+  if (!isAdmin)
+    return ResponseHelper.error("Unauthorized", 401);
+  try {
+    const settings2 = await settingsRepo.getAllSettings();
+    const apiToken = (settings2.cfApiToken || env4.CF_API_TOKEN || "").trim();
+    if (!apiToken) {
+      return ResponseHelper.error("Cloudflare API Token not found. Please enter and save your token in Cloudflare Update Authorization section first.", 400);
+    }
+    const bundleRes = await fetch("https://raw.githubusercontent.com/s7net/MonitorFlare-installer/main/public/worker-bundle.js");
+    if (!bundleRes.ok) {
+      return ResponseHelper.error("Failed to download latest release bundle from GitHub.", 500);
+    }
+    const bundleCode = await bundleRes.text();
+    let accountId = (settings2.cfAccountId || env4.CF_ACCOUNT_ID || "").trim();
+    if (!accountId) {
+      const accRes = await fetch("https://api.cloudflare.com/client/v4/accounts", {
+        headers: { Authorization: `Bearer ${apiToken}` }
+      });
+      const accData = await accRes.json();
+      if (accData.success && accData.result && accData.result.length > 0) {
+        accountId = accData.result[0].id;
+      } else {
+        return ResponseHelper.error("Could not auto-detect Cloudflare Account ID. Please enter it manually in settings.", 400);
+      }
+    }
+    let scriptName = "monitorflare";
+    const scriptListRes = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts`, {
+      headers: { Authorization: `Bearer ${apiToken}` }
+    });
+    const scriptListData = await scriptListRes.json();
+    if (scriptListData.success && scriptListData.result && scriptListData.result.length > 0) {
+      const match = scriptListData.result.find((s) => s.id.startsWith("flare-") || s.id.startsWith("monitorflare"));
+      if (match)
+        scriptName = match.id;
+    }
+    const scriptDetailRes = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${scriptName}`, {
+      headers: { Authorization: `Bearer ${apiToken}` }
+    });
+    const scriptDetailData = await scriptDetailRes.json();
+    let dbBindingId = "";
+    if (scriptDetailData.result && scriptDetailData.result.bindings) {
+      const dbBinding = scriptDetailData.result.bindings.find((b) => b.type === "d1" || b.name === "DB");
+      if (dbBinding)
+        dbBindingId = dbBinding.id || dbBinding.database_id;
+    }
+    const formData = new FormData();
+    const metadataObj = {
+      main_module: "index.js",
+      compatibility_date: "2024-09-23",
+      compatibility_flags: ["nodejs_compat_v2"],
+      bindings: dbBindingId ? [{ name: "DB", type: "d1", id: dbBindingId }] : []
+    };
+    formData.append("metadata", new Blob([JSON.stringify(metadataObj)], { type: "application/json" }));
+    formData.append("index.js", new Blob([bundleCode], { type: "application/javascript+module" }), "index.js");
+    const uploadRes = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${scriptName}`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${apiToken}` },
+      body: formData
+    });
+    const uploadData = await uploadRes.json();
+    if (uploadRes.ok && uploadData.success) {
+      return {
+        success: true,
+        message: "\u2713 MonitorFlare upgraded successfully to latest release!",
+        scriptName
+      };
+    } else {
+      return ResponseHelper.error(uploadData.errors?.[0]?.message || "Cloudflare API upload failed", 500);
+    }
+  } catch (err) {
+    return ResponseHelper.error(err.message || "System update error", 500);
   }
 });
 
@@ -34809,6 +35172,7 @@ __name(AdminDashboard, "AdminDashboard");
 
 // src/modules/ui/routes.tsx
 init_repository();
+init_repository2();
 var uiRoutes = new Elysia({ aot: false }).use(html()).get("/", async ({ headers, store, html: html2 }) => {
   const env4 = store;
   const db = createDatabase(env4.DB);
@@ -34882,138 +35246,17 @@ var createApp = /* @__PURE__ */ __name((env4) => new Elysia({ aot: false, name: 
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
 init_performance2();
-
-// src/modules/health/checker.ts
-init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
-init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
-init_performance2();
-var HealthChecker = class {
-  constructor(healthRepository, monitoringRepository, notificationService, settings2) {
-    this.healthRepository = healthRepository;
-    this.monitoringRepository = monitoringRepository;
-    this.notificationService = notificationService;
-    this.settings = settings2;
-  }
-  async checkService(service, baseUrl) {
-    let isHealthy = false;
-    let responseTime = 0;
-    let statusCode;
-    let errorMsg;
-    let region = "Direct";
-    if (service.checkType === "heartbeat") {
-      const intervalSec = service.heartbeatInterval || 300;
-      const lastCheckTime = service.lastCheckedAt ? new Date(service.lastCheckedAt).getTime() : 0;
-      const elapsedSec = Math.floor((Date.now() - lastCheckTime) / 1e3);
-      isHealthy = lastCheckTime > 0 && elapsedSec <= intervalSec;
-      responseTime = 0;
-      region = "Heartbeat";
-      if (!isHealthy) {
-        errorMsg = lastCheckTime === 0 ? "Heartbeat ping never received" : `Heartbeat overdue by ${elapsedSec - intervalSec}s (Expected every ${intervalSec}s)`;
-      }
-    } else if (service.checkType === "globalping") {
-      const gpResult = await GlobalpingClient.runCheck(
-        service.url,
-        service.method,
-        service.expectedStatus,
-        service.checkRegions || [],
-        service.timeout,
-        service.globalpingType || "http"
-      );
-      isHealthy = gpResult.isHealthy;
-      responseTime = gpResult.responseTime;
-      statusCode = gpResult.statusCode || void 0;
-      errorMsg = gpResult.error;
-      region = gpResult.region;
-    } else {
-      const startTime = Date.now();
-      try {
-        const fetchHeaders = {
-          "User-Agent": "MonitorFlare/3.0 Status Checker"
-        };
-        if (service.headers) {
-          if (typeof service.headers === "object") {
-            Object.assign(fetchHeaders, service.headers);
-          } else if (typeof service.headers === "string") {
-            try {
-              Object.assign(fetchHeaders, JSON.parse(service.headers));
-            } catch {
-            }
-          }
-        }
-        const response = await fetch(service.url, {
-          method: service.method,
-          headers: fetchHeaders,
-          signal: AbortSignal.timeout(service.timeout)
-        });
-        responseTime = Date.now() - startTime;
-        statusCode = response.status;
-        isHealthy = response.status === service.expectedStatus;
-        if (!isHealthy) {
-          errorMsg = `Expected status ${service.expectedStatus}, got ${response.status}`;
-        } else if (service.keyword && service.keyword.trim()) {
-          const bodyText = await response.text();
-          if (!bodyText.includes(service.keyword.trim())) {
-            isHealthy = false;
-            errorMsg = `Keyword "${service.keyword}" not found in response body`;
-          }
-        }
-      } catch (error3) {
-        responseTime = Date.now() - startTime;
-        errorMsg = error3 instanceof Error ? error3.message : "Connection failed";
-        isHealthy = false;
-      }
-    }
-    const maxRetries = service.maxRetries || 1;
-    let consecutiveFails = service.consecutiveFails || 0;
-    if (isHealthy) {
-      consecutiveFails = 0;
-    } else {
-      consecutiveFails += 1;
-    }
-    const isEffectivelyUnhealthy = !isHealthy && consecutiveFails >= maxRetries;
-    const currentStatus = isEffectivelyUnhealthy ? "unhealthy" : "healthy";
-    await this.healthRepository.createHealthCheck(
-      service.id,
-      isHealthy ? "healthy" : "unhealthy",
-      responseTime,
-      statusCode,
-      errorMsg,
-      region
-    );
-    await this.monitoringRepository.updateService(service.id, {
-      lastCheckedAt: service.checkType === "heartbeat" && service.lastCheckedAt ? service.lastCheckedAt : /* @__PURE__ */ new Date(),
-      lastStatus: currentStatus,
-      consecutiveFails
-    });
-    const previousStatus = service.lastStatus;
-    if (currentStatus === "unhealthy" && previousStatus !== "unhealthy") {
-      console.log(`[ALERT DOWN] ${service.name} is DOWN after ${consecutiveFails} consecutive failed check(s)!`);
-      await this.notificationService.sendAlert(
-        "down",
-        service,
-        { responseTime, statusCode, error: errorMsg || `Failed ${consecutiveFails} consecutive times`, region },
-        this.settings.downTemplate,
-        baseUrl
-      );
-    } else if (isHealthy && previousStatus === "unhealthy") {
-      console.log(`[ALERT RECOVERY] ${service.name} has RECOVERED immediately!`);
-      await this.notificationService.sendAlert(
-        "recovery",
-        service,
-        { responseTime, statusCode, region },
-        this.settings.recoveryTemplate,
-        baseUrl
-      );
-    }
-  }
-};
-__name(HealthChecker, "HealthChecker");
+init_checker();
 
 // src/modules/health/scheduler.ts
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_process();
 init_virtual_unenv_global_polyfill_cloudflare_unenv_preset_node_console();
 init_performance2();
 init_repository();
+init_repository3();
+init_repository2();
+init_checker();
+init_service();
 var HealthScheduler = class {
   constructor(env4) {
     this.env = env4;
