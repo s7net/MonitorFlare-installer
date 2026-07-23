@@ -22,8 +22,8 @@ export default {
       return new Response(null, {
         headers: {
           'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
-          'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-CF-Token',
           'Access-Control-Max-Age': '86400',
         },
       });
@@ -55,11 +55,14 @@ export default {
     // Forward request to Cloudflare API
     const forwardHeaders = new Headers();
     forwardHeaders.set('Authorization', authHeader);
-    if (request.method !== 'GET') {
-      forwardHeaders.set('Content-Type', 'application/json');
+
+    // Preserve Content-Type if present (important for multipart/form-data on PUT script uploads)
+    const contentType = request.headers.get('Content-Type');
+    if (contentType) {
+      forwardHeaders.set('Content-Type', contentType);
     }
 
-    const body = request.method !== 'GET' ? await request.arrayBuffer() : undefined;
+    const body = request.method !== 'GET' && request.method !== 'HEAD' ? await request.arrayBuffer() : undefined;
 
     const cfResponse = await fetch(cfUrl, {
       method: request.method,
@@ -74,8 +77,8 @@ export default {
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
-        'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-CF-Token',
       },
     });
   },
