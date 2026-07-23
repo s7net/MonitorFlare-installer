@@ -374,44 +374,78 @@ crons = ["* * * * *"]`;
               </div>
 
               {/* Visual Cloudflare UI Permissions Guide */}
-              <div className="p-4 rounded-lg bg-[#121215]/95 border border-brand/40 text-xs space-y-3">
-                <div className="font-bold text-white flex items-center gap-1.5 border-b border-[#2a2a30] pb-2">
-                  <Database className="w-4 h-4 text-amber-400" />
-                  <span>Step 1.2: Set Exact Cloudflare Permissions (Matches Cloudflare UI)</span>
-                </div>
-                
-                <p className="text-[11px] text-zinc-300 leading-relaxed m-0">
-                  In Cloudflare under <strong>Permissions</strong> section, click <strong>"+ Add more permissions"</strong> and set these 3 rows:
-                </p>
-
-                {/* Cloudflare Table UI Mock */}
-                <div className="border border-[#333339] rounded-lg overflow-hidden font-mono text-[11px]">
-                  <div className="bg-[#1c1c20] px-3 py-1.5 text-[10px] text-zinc-400 font-semibold uppercase flex justify-between border-b border-[#333339]">
-                    <span>Permission Group</span>
-                    <span>Category</span>
-                    <span>Access Level</span>
+              <div className="p-4 rounded-lg bg-[#121215]/95 border border-brand/40 text-xs space-y-4">
+                <div className="font-bold text-white flex items-center justify-between border-b border-[#2a2a30] pb-2">
+                  <div className="flex items-center gap-1.5">
+                    <Database className="w-4 h-4 text-amber-400" />
+                    <span>Exact Cloudflare Step-by-Step UI Guide</span>
                   </div>
-                  <div className="divide-y divide-[#26262b] bg-[#141418]">
-                    <div className="px-3 py-2 flex items-center justify-between text-amber-300">
-                      <span>Account</span>
-                      <span>D1</span>
-                      <span className="bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded font-bold">Edit</span>
+                  <span className="text-[10px] bg-brand/20 text-brand px-2 py-0.5 rounded font-mono">Cloudflare Dashboard</span>
+                </div>
+
+                {/* Step 1 Mock: Blue + Create Token Button */}
+                <div className="space-y-1.5">
+                  <div className="text-[11px] font-semibold text-zinc-200">
+                    1️⃣ Top-Right Corner: Click the Blue <strong>"+ Create Token"</strong> Button
+                  </div>
+                  <div className="p-3 bg-[#18181c] border border-[#2a2a30] rounded-lg flex items-center justify-between">
+                    <span className="text-zinc-400 text-[11px]">API Tokens List Page</span>
+                    <div className="px-4 py-1.5 bg-[#0051c3] text-white text-xs font-semibold rounded-full shadow flex items-center gap-1">
+                      <span>+</span> Create Token
                     </div>
-                    <div className="px-3 py-2 flex items-center justify-between text-blue-300">
-                      <span>Account</span>
-                      <span>Workers Scripts</span>
-                      <span className="bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded font-bold">Edit</span>
+                  </div>
+                </div>
+
+                {/* Step 2 Mock: Custom Token -> Get Started */}
+                <div className="space-y-1.5">
+                  <div className="text-[11px] font-semibold text-zinc-200">
+                    2️⃣ Under <strong>"Custom token"</strong>: Click <strong>"Get started"</strong>
+                  </div>
+                  <div className="p-3 bg-[#18181c] border border-[#2a2a30] rounded-lg space-y-2">
+                    <div className="text-[11px] font-bold text-white">Custom token</div>
+                    <div className="text-[10px] text-zinc-400">Create a custom API token by configuring your permissions by hand.</div>
+                    <div className="flex items-center justify-between bg-[#101014] p-2 rounded border border-[#2d2d35]">
+                      <span className="text-[11px] text-zinc-300 font-medium">Create Custom Token</span>
+                      <div className="px-3 py-1 bg-[#0070f3] text-white text-[11px] font-bold rounded">
+                        Get started
+                      </div>
                     </div>
-                    <div className="px-3 py-2 flex items-center justify-between text-emerald-300">
-                      <span>Account</span>
-                      <span>Account Settings</span>
-                      <span className="bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded font-bold">Read</span>
+                  </div>
+                </div>
+
+                {/* Step 3 Mock: Permissions Table */}
+                <div className="space-y-1.5">
+                  <div className="text-[11px] font-semibold text-zinc-200">
+                    3️⃣ Under <strong>"Permissions"</strong>: Click <strong>"+ Add more"</strong> and set these 3 rows:
+                  </div>
+                  <div className="border border-[#333339] rounded-lg overflow-hidden font-mono text-[11px]">
+                    <div className="bg-[#1c1c20] px-3 py-1.5 text-[10px] text-zinc-400 font-semibold uppercase flex justify-between border-b border-[#333339]">
+                      <span>Group</span>
+                      <span>Category</span>
+                      <span>Access Level</span>
+                    </div>
+                    <div className="divide-y divide-[#26262b] bg-[#141418]">
+                      <div className="px-3 py-2 flex items-center justify-between text-amber-300">
+                        <span>Account</span>
+                        <span>D1</span>
+                        <span className="bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded font-bold">Edit</span>
+                      </div>
+                      <div className="px-3 py-2 flex items-center justify-between text-blue-300">
+                        <span>Account</span>
+                        <span>Workers Scripts</span>
+                        <span className="bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded font-bold">Edit</span>
+                      </div>
+                      <div className="px-3 py-2 flex items-center justify-between text-emerald-300">
+                        <span>Account</span>
+                        <span>Account Settings</span>
+                        <span className="bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded font-bold">Read</span>
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 <div className="p-2.5 rounded bg-brand/10 border border-brand/30 text-[11px] text-zinc-200">
-                  📍 <strong>Account Resources:</strong> Select <code>All accounts</code> (or your specific Cloudflare account).
+                  📍 4️⃣ Under <strong>Account Resources</strong>: Select <code>All accounts</code>, click <strong>"Continue to summary"</strong>, then <strong>"Create Token"</strong> and paste the generated string below!
                 </div>
               </div>
             </div>
