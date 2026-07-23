@@ -189,6 +189,29 @@ export class CloudflareService {
       return { uuid: data.result.uuid, name: targetName };
     }
 
+    // 4. Fallback: If database already exists or name collides, reuse existing or append random suffix
+    if (data.errors && data.errors.some((e) => e.message.includes('already exists'))) {
+      const listRes = await cfFetch(cleanToken, `/client/v4/accounts/${accountId}/d1/database`);
+      if (listRes.ok) {
+        const listData = (await listRes.json()) as { success: boolean; result?: Array<{ uuid: string; name: string }> };
+        const match = listData.result?.find((d) => d.name === targetName || d.name === baseName);
+        if (match) {
+          return { uuid: match.uuid, name: match.name };
+        }
+      }
+
+      const randSuffix = Math.floor(1000 + Math.random() * 9000);
+      const uniqueName = `${baseName}-${randSuffix}`;
+      const retryRes = await cfFetch(cleanToken, `/client/v4/accounts/${accountId}/d1/database`, {
+        method: 'POST',
+        body: JSON.stringify({ name: uniqueName }),
+      });
+      const retryData = (await retryRes.json()) as { success: boolean; result?: { uuid: string } };
+      if (retryRes.ok && retryData.success && retryData.result?.uuid) {
+        return { uuid: retryData.result.uuid, name: uniqueName };
+      }
+    }
+
     throw new Error(data.errors?.[0]?.message || 'Failed to create Cloudflare D1 Database');
   }
 
