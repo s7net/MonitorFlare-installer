@@ -394,7 +394,7 @@ crons = ["* * * * *"]`;
                   <div className="divide-y divide-[#26262b] bg-[#141418]">
                     <div className="px-3 py-2 flex items-center justify-between text-amber-300">
                       <span>Account</span>
-                      <span>Cloudflare D1</span>
+                      <span>D1</span>
                       <span className="bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded font-bold">Edit</span>
                     </div>
                     <div className="px-3 py-2 flex items-center justify-between text-blue-300">
