@@ -1,0 +1,214 @@
+export interface CloudflareAccount {
+  id: string;
+  name: string;
+}
+
+export class CloudflareService {
+  /**
+   * Verifies if the provided Cloudflare API Token is valid.
+   */
+  static async verifyToken(apiToken: string): Promise<boolean> {
+    try {
+      const res = await fetch('https://api.cloudflare.com/client/v4/user/tokens/verify', {
+        headers: {
+          Authorization: `Bearer ${apiToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      const data = (await res.json()) as { success: boolean };
+      return res.ok && data.success;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Fetches the user's Cloudflare Accounts.
+   */
+  static async getAccounts(apiToken: string): Promise<CloudflareAccount[]> {
+    const res = await fetch('https://api.cloudflare.com/client/v4/accounts', {
+      headers: {
+        Authorization: `Bearer ${apiToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    const data = (await res.json()) as { success: boolean; result?: CloudflareAccount[] };
+    if (res.ok && data.success && data.result) {
+      return data.result.map(acc => ({ id: acc.id, name: acc.name }));
+    }
+    throw new Error('Failed to retrieve Cloudflare Accounts. Ensure API token has Account Read permissions.');
+  }
+
+  /**
+   * Provisions a new D1 Serverless Database.
+   */
+  static async createD1Database(apiToken: string, accountId: string, name: string = 'monitorflare'): Promise<string> {
+    const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ name }),
+    });
+
+    const data = (await res.json()) as { success: boolean; result?: { uuid: string }; errors?: Array<{ message: string }> };
+    
+    if (res.ok && data.success && data.result?.uuid) {
+      return data.result.uuid;
+    }
+
+    // If database already exists, list databases to find uuid
+    if (data.errors && data.errors.some(e => e.message.includes('already exists'))) {
+      const listRes = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database`, {
+        headers: {
+          Authorization: `Bearer ${apiToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      const listData = (await listRes.json()) as { success: boolean; result?: Array<{ uuid: string; name: string }> };
+      const existing = listData.result?.find(d => d.name === name);
+      if (existing) return existing.uuid;
+    }
+
+    throw new Error(data.errors?.[0]?.message || 'Failed to create Cloudflare D1 Database');
+  }
+
+  /**
+   * Executes SQL Statements on Cloudflare D1 via REST API.
+   */
+  static async executeD1Query(apiToken: string, accountId: string, databaseId: string, sql: string, params: any[] = []): Promise<any> {
+    const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${databaseId}/query`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        sql,
+        params,
+      }),
+    });
+
+    const data = (await res.json()) as { success: boolean; errors?: Array<{ message: string }> };
+    if (!res.ok || !data.success) {
+      throw new Error(data.errors?.[0]?.message || 'D1 SQL Query execution failed');
+    }
+    return data;
+  }
+
+  /**
+   * Executes all D1 Table Migrations (0000 - 0004) directly from browser.
+   */
+  static async applyAllMigrations(apiToken: string, accountId: string, databaseId: string): Promise<void> {
+    const migrations = [
+      // 1. Services Table
+      `CREATE TABLE IF NOT EXISTS services (
+        id TEXT PRIMARY KEY NOT NULL,
+        name TEXT NOT NULL,
+        url TEXT NOT NULL,
+        method TEXT DEFAULT 'GET' NOT NULL,
+        timeout INTEGER DEFAULT 10000 NOT NULL,
+        expected_status INTEGER DEFAULT 200 NOT NULL,
+        created_at INTEGER NOT NULL,
+        check_type TEXT NOT NULL DEFAULT 'direct',
+        check_regions TEXT,
+        show_url INTEGER NOT NULL DEFAULT 1,
+        last_checked_at INTEGER,
+        last_status TEXT,
+        globalping_type TEXT NOT NULL DEFAULT 'http',
+        headers TEXT,
+        keyword TEXT,
+        group_name TEXT,
+        ssl_check INTEGER NOT NULL DEFAULT 0,
+        heartbeat_token TEXT,
+        heartbeat_interval INTEGER,
+        max_retries INTEGER NOT NULL DEFAULT 1,
+        consecutive_fails INTEGER NOT NULL DEFAULT 0
+      );`,
+
+      // 2. Health Checks Table
+      `CREATE TABLE IF NOT EXISTS health_checks (
+        id TEXT PRIMARY KEY NOT NULL,
+        service_id TEXT NOT NULL,
+        status TEXT NOT NULL,
+        response_time INTEGER NOT NULL,
+        status_code INTEGER,
+        error TEXT,
+        timestamp INTEGER NOT NULL,
+        region TEXT
+      );`,
+
+      // 3. Notifications Table
+      `CREATE TABLE IF NOT EXISTS notifications (
+        id TEXT PRIMARY KEY NOT NULL,
+        type TEXT NOT NULL,
+        enabled INTEGER DEFAULT 1 NOT NULL,
+        config TEXT NOT NULL,
+        created_at INTEGER NOT NULL
+      );`,
+
+      // 4. Settings Table
+      `CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      );`,
+
+      // 5. Incidents Table
+      `CREATE TABLE IF NOT EXISTS incidents (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        message TEXT NOT NULL,
+        severity TEXT NOT NULL DEFAULT 'warning',
+        is_active INTEGER NOT NULL DEFAULT 1,
+        start_at INTEGER NOT NULL,
+        end_at INTEGER,
+        created_at INTEGER NOT NULL
+      );`,
+    ];
+
+    for (const sql of migrations) {
+      await this.executeD1Query(apiToken, accountId, databaseId, sql);
+    }
+  }
+
+  /**
+   * Seeds initial settings into D1.
+   */
+  static async seedSettings(apiToken: string, accountId: string, databaseId: string, settings: Record<string, string>): Promise<void> {
+    for (const [key, value] of Object.entries(settings)) {
+      await this.executeD1Query(
+        apiToken,
+        accountId,
+        databaseId,
+        `INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value;`,
+        [key, value]
+      );
+    }
+
+    // Mark as installed
+    await this.executeD1Query(
+      apiToken,
+      accountId,
+      databaseId,
+      `INSERT INTO settings (key, value) VALUES ('installed', '1') ON CONFLICT(key) DO UPDATE SET value = '1';`
+    );
+  }
+
+  /**
+   * Tests Telegram Bot Token & Chat ID directly from client.
+   */
+  static async testTelegramBot(botToken: string, chatId: string): Promise<boolean> {
+    const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: '⚡️ MonitorFlare Auto-Installer Test Message\n\nYour Telegram Alert Bot connection is verified!',
+        parse_mode: 'HTML',
+      }),
+    });
+    const data = (await res.json()) as { ok: boolean };
+    return res.ok && data.ok;
+  }
+}
