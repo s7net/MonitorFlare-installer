@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { CloudflareService, CloudflareAccount } from './services/cloudflare';
 import { generateRandomCredentials, hashPassword } from './utils/credentials';
-import { Shield, Cloud, Bot, Sparkles, CheckCircle2, AlertCircle, Copy, Check, ArrowRight, RefreshCw, ExternalLink, KeyRound, CheckSquare } from 'lucide-react';
+import { Shield, Cloud, Bot, Sparkles, CheckCircle2, AlertCircle, Copy, Check, ArrowRight, RefreshCw, ExternalLink, KeyRound, Database, Cpu, UserCheck } from 'lucide-react';
 
 export default function App() {
   const [step, setStep] = useState<number>(1);
@@ -225,16 +225,16 @@ export default function App() {
           </div>
         )}
 
-        {/* STEP 1: CLOUDFLARE API TOKEN WITH 1-CLICK PRE-FILLED TEMPLATE LINK */}
+        {/* STEP 1: CLOUDFLARE API TOKEN WITH PRE-FILLED D1 DATABASE & WORKERS PERMISSIONS */}
         {step === 1 && (
           <div className="space-y-6">
             <div>
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <Cloud className="w-5 h-5 text-brand" />
-                Step 1: 1-Click Cloudflare Connection
+                Step 1: 1-Click Cloudflare Connection & Database Access
               </h2>
               <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-                Click the button below to open Cloudflare with all required permissions pre-selected.
+                Click the button below to authorize Cloudflare to automatically create your D1 Database, execute SQL tables, and deploy Workers.
               </p>
             </div>
 
@@ -247,7 +247,7 @@ export default function App() {
                     ⚡️ 1-Click Pre-Configured Cloudflare Token
                   </div>
                   <p className="text-xs text-zinc-300 leading-relaxed">
-                    Opens Cloudflare with <strong>Edit Workers & D1 Database</strong> permissions pre-selected. Just click <em>"Use Template"</em> &rarr; <em>"Create Token"</em>!
+                    Includes <strong>Cloudflare D1 Database (Edit)</strong> + <strong>Workers Scripts (Edit)</strong> permissions. Just click <em>"Use Template"</em> &rarr; <em>"Create Token"</em>!
                   </p>
                 </div>
 
@@ -263,9 +263,9 @@ export default function App() {
               </div>
 
               <div className="pt-2 border-t border-brand/20 grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] text-zinc-300">
-                <div className="flex items-center gap-1.5"><CheckSquare className="w-3.5 h-3.5 text-emerald-400" /> Pre-filled Permissions</div>
-                <div className="flex items-center gap-1.5"><CheckSquare className="w-3.5 h-3.5 text-emerald-400" /> 1-Click Confirmation</div>
-                <div className="flex items-center gap-1.5"><CheckSquare className="w-3.5 h-3.5 text-emerald-400" /> Instant Paste & Verify</div>
+                <div className="flex items-center gap-1.5"><Database className="w-3.5 h-3.5 text-emerald-400" /> D1 Database Creation</div>
+                <div className="flex items-center gap-1.5"><Cpu className="w-3.5 h-3.5 text-emerald-400" /> Workers Edge Deploy</div>
+                <div className="flex items-center gap-1.5"><UserCheck className="w-3.5 h-3.5 text-emerald-400" /> Account Auto-Detect</div>
               </div>
             </div>
 
