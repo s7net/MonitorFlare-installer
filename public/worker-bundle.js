@@ -29860,7 +29860,7 @@ var MonitoringRepository = class {
     return result ? this.mapRowToService(result) : null;
   }
   async getAllServices() {
-    const rows = await this.db.select().from(services).all();
+    const rows = await this.db.select().from(services);
     return rows.map((r) => this.mapRowToService(r));
   }
   async updateService(id, data) {
@@ -30207,7 +30207,7 @@ var HealthRepository = class {
     };
   }
   async getHealthChecks(serviceId, limit = CONFIG.HEALTH_CHECK_LIMIT) {
-    const results = await this.db.select().from(healthChecks).where(eq(healthChecks.serviceId, serviceId)).orderBy(desc(healthChecks.timestamp)).limit(limit).all();
+    const results = await this.db.select().from(healthChecks).where(eq(healthChecks.serviceId, serviceId)).orderBy(desc(healthChecks.timestamp)).limit(limit);
     return results.map((check) => ({
       ...check,
       statusCode: check.statusCode ?? void 0,
@@ -31145,7 +31145,7 @@ var NotificationRepository = class {
     };
   }
   async getAllNotifications() {
-    const results = await this.db.select().from(notifications).all();
+    const results = await this.db.select().from(notifications);
     return results.map((n) => ({
       ...n,
       config: JSON.parse(n.config)
@@ -31177,7 +31177,7 @@ var NotificationRepository = class {
     await this.db.delete(notifications).where(eq(notifications.id, id));
   }
   async getEnabledNotifications() {
-    const results = await this.db.select().from(notifications).where(eq(notifications.enabled, true)).all();
+    const results = await this.db.select().from(notifications).where(eq(notifications.enabled, true));
     return results.map((n) => ({
       ...n,
       config: JSON.parse(n.config)
@@ -31223,6 +31223,7 @@ var DEFAULT_SETTINGS = {
   totpEnabled: false,
   totpSecret: "",
   adminUsername: "admin",
+  adminPasswordHash: "",
   adminPanelPath: "/manage-x7k9",
   baseUrl: ""
 };
@@ -31232,7 +31233,7 @@ var SettingsRepository = class {
   }
   async getAllSettings() {
     try {
-      const rows = await this.db.select().from(settings).all();
+      const rows = await this.db.select().from(settings);
       const map3 = new Map(rows.map((r) => [r.key, r.value]));
       return {
         brandName: map3.get("brand_name") ?? DEFAULT_SETTINGS.brandName,
@@ -31251,6 +31252,7 @@ var SettingsRepository = class {
         totpEnabled: map3.get("totp_enabled") === "true" || map3.get("totp_enabled") === "1",
         totpSecret: map3.get("totp_secret") || "",
         adminUsername: map3.get("admin_username") || DEFAULT_SETTINGS.adminUsername,
+        adminPasswordHash: map3.get("admin_password_hash") || "",
         adminPanelPath: map3.get("admin_panel_path") || DEFAULT_SETTINGS.adminPanelPath,
         baseUrl: map3.get("base_url") || DEFAULT_SETTINGS.baseUrl
       };
@@ -31276,6 +31278,7 @@ var SettingsRepository = class {
       totpEnabled: "totp_enabled",
       totpSecret: "totp_secret",
       adminUsername: "admin_username",
+      adminPasswordHash: "admin_password_hash",
       adminPanelPath: "admin_panel_path",
       baseUrl: "base_url"
     };
@@ -31493,6 +31496,9 @@ var authRoutes = new Elysia({ prefix: "/api" }).derive(async ({ store }) => {
   const settingsRepository = new SettingsRepository(db);
   const settings2 = await settingsRepository.getAllSettings();
   authService.adminUsername = settings2.adminUsername || "admin";
+  if (settings2.adminPasswordHash) {
+    authService.adminPasswordHash = settings2.adminPasswordHash;
+  }
   return { authService, settingsRepository, env: env4 };
 }).post("/auth/login", async ({ body, headers, authService, settingsRepository, env: env4 }) => {
   const ip = headers["cf-connecting-ip"] || headers["x-forwarded-for"] || "127.0.0.1";
@@ -31653,14 +31659,14 @@ var IncidentsRepository = class {
     return incident;
   }
   async getAllIncidents() {
-    const rows = await this.db.select().from(incidents).orderBy(desc(incidents.createdAt)).all();
+    const rows = await this.db.select().from(incidents).orderBy(desc(incidents.createdAt));
     return rows.map((r) => ({
       ...r,
       isActive: Boolean(r.isActive)
     }));
   }
   async getActiveIncidents() {
-    const rows = await this.db.select().from(incidents).where(eq(incidents.isActive, true)).orderBy(desc(incidents.createdAt)).all();
+    const rows = await this.db.select().from(incidents).where(eq(incidents.isActive, true)).orderBy(desc(incidents.createdAt));
     return rows.map((r) => ({
       ...r,
       isActive: Boolean(r.isActive)
