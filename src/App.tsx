@@ -199,7 +199,43 @@ export default function App() {
       await CloudflareService.seedSettings(apiToken.trim(), selectedAccountId, dbUuid, settingsMap);
       addLog('✓ Admin Security Credentials & Settings Saved to D1', 'success');
 
-      // 4. Generate wrangler.toml Config Snippet
+      // 4. Fetch Pre-compiled Worker Code & Upload to Cloudflare Workers API
+      addLog(`Fetching pre-compiled MonitorFlare Worker code...`, 'pending');
+      const bundleRes = await fetch('/worker-bundle.js');
+      if (!bundleRes.ok) {
+        throw new Error('Failed to load pre-compiled MonitorFlare Worker code from installer.');
+      }
+      const workerCode = await bundleRes.text();
+
+      addLog(`Deploying Worker script "${activeWorkerName}" to Cloudflare Workers...`, 'pending');
+      await CloudflareService.deployWorkerScript(
+        apiToken.trim(),
+        selectedAccountId,
+        activeWorkerName,
+        dbUuid,
+        workerCode
+      );
+      addLog(`✓ Cloudflare Worker "${activeWorkerName}" Uploaded & Deployed!`, 'success');
+
+      // 5. Enable workers.dev Subdomain Route
+      addLog(`Enabling workers.dev subdomain route (${computedWorkerBaseUrl})...`, 'pending');
+      await CloudflareService.enableWorkerSubdomain(
+        apiToken.trim(),
+        selectedAccountId,
+        activeWorkerName
+      );
+      addLog(`✓ Route Enabled: ${computedWorkerBaseUrl}`, 'success');
+
+      // 6. Enable 1-Minute Cron Trigger Monitoring
+      addLog('Configuring 1-minute Cron Trigger monitoring (* * * * *)...', 'pending');
+      await CloudflareService.enableWorkerCronTriggers(
+        apiToken.trim(),
+        selectedAccountId,
+        activeWorkerName
+      );
+      addLog('✓ 1-Minute Health Check Cron Trigger Activated', 'success');
+
+      // 7. Generate wrangler.toml Config Snippet
       const wranglerToml = `name = "${activeWorkerName}"
 main = "src/index.ts"
 compatibility_date = "2024-09-23"
@@ -213,7 +249,7 @@ database_id = "${dbUuid}"
 [triggers]
 crons = ["* * * * *"]`;
 
-      // 5. Set Deployment Result Summary
+      // 8. Set Deployment Result Summary
       setDeploymentResult({
         databaseId: dbUuid,
         workerBaseUrl: computedWorkerBaseUrl,
@@ -222,7 +258,7 @@ crons = ["* * * * *"]`;
         wranglerToml,
       });
 
-      addLog('🚀 100% Client-Side Provisioning Complete!', 'success');
+      addLog('🚀 100% Automated Deployment & Launch Complete!', 'success');
       setStep(5);
     } catch (err: any) {
       setErrorMsg(err.message || 'Auto-deployment encountered an error');

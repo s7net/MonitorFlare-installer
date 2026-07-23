@@ -307,4 +307,108 @@ export class CloudflareService {
     const data = (await res.json()) as { ok: boolean };
     return res.ok && data.ok;
   }
+
+  /**
+   * Uploads and deploys the pre-compiled Worker script with D1 Database binding via REST API.
+   */
+  static async deployWorkerScript(
+    apiToken: string,
+    accountId: string,
+    scriptName: string,
+    databaseId: string,
+    scriptContent: string
+  ): Promise<boolean> {
+    const cleanToken = apiToken.trim();
+    const cleanScriptName = scriptName.trim().toLowerCase();
+
+    const metadata = {
+      main_module: 'index.js',
+      compatibility_date: '2024-09-23',
+      compatibility_flags: ['nodejs_compat_v2'],
+      bindings: [
+        {
+          name: 'DB',
+          type: 'd1',
+          id: databaseId,
+        },
+      ],
+    };
+
+    const formData = new FormData();
+    formData.append(
+      'metadata',
+      new Blob([JSON.stringify(metadata)], { type: 'application/json' })
+    );
+    formData.append(
+      'index.js',
+      new Blob([scriptContent], { type: 'application/javascript+module' }),
+      'index.js'
+    );
+
+    const res = await fetch(cfUrl(`/client/v4/accounts/${accountId}/workers/scripts/${cleanScriptName}`), {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${cleanToken}`,
+      },
+      body: formData,
+    });
+
+    const data = (await res.json()) as { success: boolean; errors?: Array<{ message: string }> };
+    if (res.ok && data.success) {
+      return true;
+    }
+    throw new Error(data.errors?.[0]?.message || 'Failed to deploy Worker script to Cloudflare');
+  }
+
+  /**
+   * Enables the workers.dev subdomain route for the deployed script.
+   */
+  static async enableWorkerSubdomain(
+    apiToken: string,
+    accountId: string,
+    scriptName: string
+  ): Promise<boolean> {
+    const cleanToken = apiToken.trim();
+    const cleanScriptName = scriptName.trim().toLowerCase();
+
+    const res = await cfFetch(
+      cleanToken,
+      `/client/v4/accounts/${accountId}/workers/scripts/${cleanScriptName}/subdomain`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ enabled: true }),
+      }
+    );
+
+    const data = (await res.json()) as { success: boolean };
+    return res.ok && data.success;
+  }
+
+  /**
+   * Configures cron triggers (* * * * *) so health checks run automatically every minute.
+   */
+  static async enableWorkerCronTriggers(
+    apiToken: string,
+    accountId: string,
+    scriptName: string
+  ): Promise<boolean> {
+    const cleanToken = apiToken.trim();
+    const cleanScriptName = scriptName.trim().toLowerCase();
+
+    try {
+      const res = await cfFetch(
+        cleanToken,
+        `/client/v4/accounts/${accountId}/workers/scripts/${cleanScriptName}/schedules`,
+        {
+          method: 'PUT',
+          body: JSON.stringify([{ cron: '* * * * *' }]),
+        }
+      );
+      const data = (await res.json()) as { success: boolean };
+      return res.ok && data.success;
+    } catch {
+      return false;
+    }
+  }
 }
+
